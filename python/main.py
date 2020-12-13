@@ -78,7 +78,8 @@ SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN + BOTTOM_MARGIN
 SCREEN_TITLE = "Array Backed Grid Example"
 
 
-TILE_BAG = ['A'] * 9 + ['B'] * 2 + ['C'] * 2 + ['D'] * 4 + ['E'] * 12 + ['F'] * 2 + \
+TILE_BAG = \
+    ['A'] * 9 + ['B'] * 2 + ['C'] * 2 + ['D'] * 4 + ['E'] * 12 + ['F'] * 2 + \
     ['G'] * 3 + ['H'] * 2 + ['I'] * 9 + ['J'] * 1 + ['K'] * 1 + ['L'] * 4 + ['M'] * 2 + \
     ['N'] * 6 + ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6 + ['S'] * 4 + ['T'] * 6 + \
     ['U'] * 4 + ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2 + ['Z'] * 1
@@ -110,8 +111,8 @@ class MyGame(arcade.Window):
         random.shuffle(TILE_BAG)
         tile_bag_index = 0
 
-        your_tiles = TILE_BAG[0:7]
-        oppenents_tiles = TILE_BAG[7:14]
+        self.your_tiles = TILE_BAG[0:7]
+        self.oppenents_tiles = TILE_BAG[7:14]
 
         DICTIONARY = set()
         with open('dictionary.txt') as f:
@@ -120,15 +121,15 @@ class MyGame(arcade.Window):
 
         # visual verification
         print(TILE_BAG)
-        print(your_tiles)
-        print(oppenents_tiles)
+        print(self.your_tiles)
+        print(self.oppenents_tiles)
         print(len(DICTIONARY))
 
-        print(sum((len(list(it.permutations(your_tiles, i)))
+        print(sum((len(list(it.permutations(self.your_tiles, i)))
                    for i in range(7, 1, -1))))
 
         words = {''.join(p) for i in range(7, 4, -1)
-                 for p in it.permutations(your_tiles, i) if ''.join(p) in DICTIONARY}
+                 for p in it.permutations(self.your_tiles, i) if ''.join(p) in DICTIONARY}
         print(words)
 
     def on_draw(self):
@@ -152,6 +153,18 @@ class MyGame(arcade.Window):
 
                 # Draw the box
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
+
+        # Draw tiles
+        for i, tile in enumerate(self.your_tiles):
+
+            color = arcade.color.AMETHYST
+            x = (4 + i) * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
+            y = 50
+
+            # Draw the box - TODO refactor this into draw_tile
+            arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
+            arcade.draw_text(tile, x-15, y-25,
+                             arcade.color.WHITE, 40, bold=True)
 
     def on_mouse_press(self, x, y, button, modifiers):
         """
