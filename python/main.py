@@ -27,6 +27,47 @@ HEIGHT = 50
 # and on the edges of the screen.
 MARGIN = 5
 
+NO = 1
+DL = 2
+DW = 3
+TL = 4
+TW = 5
+
+BOARD = [[TW, NO, NO, DL, NO, NO, NO, TW, NO, NO, NO, DL, NO, NO, TW],
+         [NO, DW, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, DW, NO],
+         [NO, NO, DW, NO, NO, NO, DL, NO, DL, NO, NO, NO, DW, NO, NO],
+         [DL, NO, NO, DW, NO, NO, NO, DL, NO, NO, NO, DW, NO, NO, DL],
+         [NO, NO, NO, NO, DW, NO, NO, NO, NO, NO, DW, NO, NO, NO, NO],
+         [NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO],
+         [NO, NO, DL, NO, NO, NO, DL, NO, DL, NO, NO, NO, NO, DL, NO],
+         [TW, NO, NO, DL, NO, NO, NO, DW, NO, NO, NO, DL, NO, NO, TW],
+         [NO, NO, DL, NO, NO, NO, DL, NO, DL, NO, NO, NO, NO, DL, NO],
+         [NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO],
+         [NO, NO, NO, NO, DW, NO, NO, NO, NO, NO, DW, NO, NO, NO, NO],
+         [DL, NO, NO, DW, NO, NO, NO, DL, NO, NO, NO, DW, NO, NO, DL],
+         [NO, NO, DW, NO, NO, NO, DL, NO, DL, NO, NO, NO, DW, NO, NO],
+         [NO, DW, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, DW, NO],
+         [TW, NO, NO, DL, NO, NO, NO, TW, NO, NO, NO, DL, NO, NO, TW]]
+
+COLOR_NORMAL = (200, 196, 172)
+COLOR_TRIPLE_WORD = (241, 108, 77)
+COLOR_TRIPLE_LETTER = (58, 156, 184)
+COLOR_DOUBLE_WORD = (250, 187, 170)
+COLOR_DOUBLE_LETTER = (189, 215, 214)
+
+
+def tile_color(row, col):
+    if BOARD[row][col] == DL:
+        return COLOR_DOUBLE_LETTER
+    if BOARD[row][col] == DW:
+        return COLOR_DOUBLE_WORD
+    if BOARD[row][col] == TL:
+        return COLOR_TRIPLE_LETTER
+    if BOARD[row][col] == TW:
+        return COLOR_TRIPLE_WORD
+    return COLOR_NORMAL
+
+
 # Do the math to figure out our screen dimensions
 SCREEN_WIDTH = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
@@ -69,10 +110,7 @@ class MyGame(arcade.Window):
         for row in range(ROW_COUNT):
             for column in range(COLUMN_COUNT):
                 # Figure out what color to draw the box
-                if self.grid[row][column] == 1:
-                    color = arcade.color.GREEN
-                else:
-                    color = arcade.color.WHITE
+                color = tile_color(row, column)
 
                 # Do the math to figure out where the box is
                 x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
