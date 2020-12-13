@@ -107,6 +107,11 @@ class MyGame(arcade.Window):
 
         arcade.set_background_color(arcade.color.BLACK)
 
+        # Cursor for typings
+        self.cursor = 0  # 0 = off, 1 = across, 2 = down
+        self.cursor_x = 0
+        self.cursor_y = 0
+
         # Setup game
         random.shuffle(TILE_BAG)
         tile_bag_index = 0
@@ -145,14 +150,21 @@ class MyGame(arcade.Window):
             for column in range(COLUMN_COUNT):
                 # Figure out what color to draw the box
                 color = tile_color(row, column)
-
                 # Do the math to figure out where the box is
                 x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
                 y = (MARGIN + HEIGHT) * row + MARGIN + \
                     HEIGHT // 2 + BOTTOM_MARGIN
-
                 # Draw the box
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
+
+        # Draw cursor
+        if self.cursor:
+            color = arcade.color.WHITE if self.cursor == 1 else arcade.color.BLACK
+            x = (MARGIN + WIDTH) * self.cursor_x + MARGIN + WIDTH // 2
+            y = (MARGIN + HEIGHT) * self.cursor_y + MARGIN + \
+                HEIGHT // 2 + BOTTOM_MARGIN
+            # Draw the box
+            arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
         # Draw tiles
         for i, tile in enumerate(self.your_tiles):
@@ -173,20 +185,24 @@ class MyGame(arcade.Window):
 
         # Change the x/y screen coordinates to grid coordinates
         column = int(x // (WIDTH + MARGIN))
-        row = int(y // (HEIGHT + MARGIN))
+        row = int((y - BOTTOM_MARGIN) // (HEIGHT + MARGIN))
+
+        self.cursor_x = column
+        self.cursor_y = row
+        self.cursor = (self.cursor + 1) % 3
 
         print(
             f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})")
 
         # Make sure we are on-grid. It is possible to click in the upper right
         # corner in the margin and go to a grid location that doesn't exist
-        if row < ROW_COUNT and column < COLUMN_COUNT:
+        # if row < ROW_COUNT and column < COLUMN_COUNT:
 
-            # Flip the location between 1 and 0.
-            if self.grid[row][column] == 0:
-                self.grid[row][column] = 1
-            else:
-                self.grid[row][column] = 0
+        #     # Flip the location between 1 and 0.
+        #     if self.grid[row][column] == 0:
+        #         self.grid[row][column] = 1
+        #     else:
+        #         self.grid[row][column] = 0
 
 
 def main():
