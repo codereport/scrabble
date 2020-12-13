@@ -14,6 +14,7 @@ If Python and Arcade are installed, this example can be run from the command lin
 python -m arcade.examples.array_backed_grid
 """
 import arcade
+import random
 
 # Set how many rows and columns we will have
 ROW_COUNT = 15
@@ -77,6 +78,12 @@ SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN + BOTTOM_MARGIN
 SCREEN_TITLE = "Array Backed Grid Example"
 
 
+TILE_BAG = ['A'] * 9 + ['B'] * 2 + ['C'] * 2 + ['D'] * 4 + ['E'] * 12 + ['F'] * 2 + \
+    ['G'] * 3 + ['H'] * 2 + ['I'] * 9 + ['J'] * 1 + ['K'] * 1 + ['L'] * 4 + ['M'] * 2 + \
+    ['N'] * 6 + ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6 + ['S'] * 4 + ['T'] * 6 + \
+    ['U'] * 4 + ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2 + ['Z'] * 1
+
+
 class MyGame(arcade.Window):
     """
     Main application class.
@@ -100,6 +107,8 @@ class MyGame(arcade.Window):
                 self.grid[row].append(0)  # Append a cell
 
         arcade.set_background_color(arcade.color.BLACK)
+
+        random.shuffle(TILE_BAG)
 
     def on_draw(self):
         """
