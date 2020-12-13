@@ -68,9 +68,12 @@ def tile_color(row, col):
     return COLOR_NORMAL
 
 
+BOTTOM_MARGIN = 100
+RIGHT_MARGIN = 400
+
 # Do the math to figure out our screen dimensions
-SCREEN_WIDTH = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN
-SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
+SCREEN_WIDTH = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
+SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN + BOTTOM_MARGIN
 SCREEN_TITLE = "Array Backed Grid Example"
 
 
@@ -114,7 +117,8 @@ class MyGame(arcade.Window):
 
                 # Do the math to figure out where the box is
                 x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
-                y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
+                y = (MARGIN + HEIGHT) * row + MARGIN + \
+                    HEIGHT // 2 + BOTTOM_MARGIN
 
                 # Draw the box
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
