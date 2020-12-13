@@ -14,7 +14,7 @@ If Python and Arcade are installed, this example can be run from the command lin
 python -m arcade.examples.array_backed_grid
 """
 import arcade
-import random
+import random  # shuffle
 
 # Set how many rows and columns we will have
 ROW_COUNT = 15
@@ -24,8 +24,7 @@ COLUMN_COUNT = 15
 WIDTH = 50
 HEIGHT = 50
 
-# This sets the margin between each cell
-# and on the edges of the screen.
+# This sets the margin between each cell and on the edges of the screen.
 MARGIN = 5
 
 NO = 1
@@ -96,19 +95,27 @@ class MyGame(arcade.Window):
 
         super().__init__(width, height, title)
 
-        # Create a 2 dimensional array. A two dimensional
-        # array is simply a list of lists.
+        # Create a 2 dimensional array. A two dimensional array is simply a list of lists.
         self.grid = []
         for row in range(ROW_COUNT):
-            # Add an empty array that will hold each cell
-            # in this row
+            # Add an empty array that will hold each cell in this row
             self.grid.append([])
             for column in range(COLUMN_COUNT):
-                self.grid[row].append(0)  # Append a cell
+                self.grid[row].append(0)
 
         arcade.set_background_color(arcade.color.BLACK)
 
+        # Setup game
         random.shuffle(TILE_BAG)
+        tile_bag_index = 0
+
+        your_tiles = TILE_BAG[0:7]
+        oppenents_tiles = TILE_BAG[7:14]
+
+        # visual verification
+        print(TILE_BAG)
+        print(your_tiles)
+        print(oppenents_tiles)
 
     def on_draw(self):
         """
