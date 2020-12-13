@@ -15,6 +15,7 @@ python -m arcade.examples.array_backed_grid
 """
 import arcade
 import random  # shuffle
+import itertools as it  # permutations
 
 # Set how many rows and columns we will have
 ROW_COUNT = 15
@@ -112,10 +113,23 @@ class MyGame(arcade.Window):
         your_tiles = TILE_BAG[0:7]
         oppenents_tiles = TILE_BAG[7:14]
 
+        DICTIONARY = set()
+        with open('dictionary.txt') as f:
+            for line in f:
+                DICTIONARY.add(line.strip())
+
         # visual verification
         print(TILE_BAG)
         print(your_tiles)
         print(oppenents_tiles)
+        print(len(DICTIONARY))
+
+        print(sum((len(list(it.permutations(your_tiles, i)))
+                   for i in range(7, 1, -1))))
+
+        words = {''.join(p) for i in range(7, 4, -1)
+                 for p in it.permutations(your_tiles, i) if ''.join(p) in DICTIONARY}
+        print(words)
 
     def on_draw(self):
         """
