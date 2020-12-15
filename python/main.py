@@ -66,17 +66,40 @@ class Direction(Enum):
     DOWN = 2
 
 
-def score_word(board, dir, letters, row, col):
+def score_word(board, dictionary, dir, letters, row, col):
+    if board[row][col] != '.':
+        return Err('cannot start word on existing tile')
     if dir == Direction.ACROSS:
         if len([1 for c in board[row][col:] if c != '.']) < len(letters):
-            return Err('too many letters')
+            return Err('outside of board')
     else:
         if len([1 for c in np.transpose(board)[col][row:] if c == '.']) < len(letters):
-            return Err('too many letters')
+            return Err('outside of board')
 
-    # TODO
+    # currently only support crossword style #TODO support adjacent
+    word_played = ''
+    row_delta = 1 if dir == Direction.DOWN else 0
+    col_delta = 0 if dir == Direction.DOWN else 1
+    crosses = False
 
-    return Ok(0)
+    for letter in letters:
+        while board[row][col] != '.':
+            word_played = word_played + board[row][col]
+            row += row_delta
+            col += col_delta
+            crosses = True
+        word_played = word_played + letter
+        row += row_delta
+        col += col_delta
+
+    if not crosses:
+        return Err('does not overlap with any other word')
+
+    if word_played not in dictionary:
+        return word_played + ' not in dictionary'
+
+    # TODO return score
+    return Ok(word_played)
 
 
 def tile_color(row, col):
@@ -141,16 +164,16 @@ class MyGame(arcade.Window):
         self.your_tiles = TILE_BAG[0: 7]
         self.oppenents_tiles = TILE_BAG[7: 14]
 
-        DICTIONARY = set()
+        self.DICTIONARY = set()
         with open('dictionary.txt') as f:
             for line in f:
-                DICTIONARY.add(line.strip())
+                self.DICTIONARY.add(line.strip())
 
         # visual verification
         print(TILE_BAG)
         print(self.your_tiles)
         print(self.oppenents_tiles)
-        print(len(DICTIONARY))
+        print(len(self.DICTIONARY))
 
         print(sum((len(list(it.permutations(self.your_tiles, i)))
                    for i in range(7, 1, -1))))
@@ -159,10 +182,10 @@ class MyGame(arcade.Window):
                    for i in range(8, 1, -1))))
 
         words = {''.join(p) for i in range(7, 4, -1)
-                 for p in it.permutations(self.your_tiles, i) if ''.join(p) in DICTIONARY}
+                 for p in it.permutations(self.your_tiles, i) if ''.join(p) in self.DICTIONARY}
         print(words)
 
-        print(score_word(self.grid, Direction.DOWN, 'WRLD', 6, 7))
+        print(score_word(self.grid, self.DICTIONARY, Direction.DOWN, 'WRLD', 6, 7))
 
     def on_draw(self):
         """
