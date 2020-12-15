@@ -75,7 +75,7 @@ RIGHT_MARGIN = 400
 # Do the math to figure out our screen dimensions
 SCREEN_WIDTH = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN + BOTTOM_MARGIN
-SCREEN_TITLE = "Array Backed Grid Example"
+SCREEN_TITLE = "Scrabble"
 
 
 TILE_BAG = \
@@ -98,12 +98,8 @@ class MyGame(arcade.Window):
         super().__init__(width, height, title)
 
         # Create a 2 dimensional array. A two dimensional array is simply a list of lists.
-        self.grid = []
-        for row in range(ROW_COUNT):
-            # Add an empty array that will hold each cell in this row
-            self.grid.append([])
-            for column in range(COLUMN_COUNT):
-                self.grid[row].append(0)
+        self.grid = ['.' * 15] * 15
+        self.grid[7] = '...HELLO.......'
 
         arcade.set_background_color(arcade.color.BLACK)
 
@@ -133,6 +129,9 @@ class MyGame(arcade.Window):
         print(sum((len(list(it.permutations(self.your_tiles, i)))
                    for i in range(7, 1, -1))))
 
+        print(sum((len(list(it.permutations(self.your_tiles + ['A'], i)))
+                   for i in range(8, 1, -1))))
+
         words = {''.join(p) for i in range(7, 4, -1)
                  for p in it.permutations(self.your_tiles, i) if ''.join(p) in DICTIONARY}
         print(words)
@@ -149,7 +148,8 @@ class MyGame(arcade.Window):
         for row in range(ROW_COUNT):
             for column in range(COLUMN_COUNT):
                 # Figure out what color to draw the box
-                color = tile_color(row, column)
+                color = tile_color(
+                    row, column) if self.grid[row][column] == '.' else arcade.color.AMETHYST
                 # Do the math to figure out where the box is
                 x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
                 y = (MARGIN + HEIGHT) * row + MARGIN + \
