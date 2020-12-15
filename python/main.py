@@ -157,6 +157,10 @@ class MyGame(arcade.Window):
                 # Draw the box
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
+                if self.grid[row][column] != '.':
+                    arcade.draw_text(self.grid[row][column], x-15, y-25,
+                                     arcade.color.WHITE, 40, bold=True)
+
         # Draw cursor
         if self.cursor:
             color = arcade.color.WHITE if self.cursor == 1 else arcade.color.BLACK
