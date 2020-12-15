@@ -1,37 +1,34 @@
 """
-Array Backed Grid
+Scrabble Game
 
-Show how to use a two-dimensional list/array to back the display of a
-grid on-screen.
-
-Note: Regular drawing commands are slow. Particularly when drawing a lot of
-items, like the rectangles in this example.
-
-For faster drawing, create the shapes and then draw them as a batch.
-See array_backed_grid_buffered.py
-
-If Python and Arcade are installed, this example can be run from the command line with:
-python -m arcade.examples.array_backed_grid
+Started from https://arcade.academy/examples/array_backed_grid.html#array-backed-grid
 """
+
 import arcade
-import random  # shuffle
+import random           # shuffle
 import itertools as it  # permutations
-import numpy as np  # transpose
+import numpy     as np  # transpose
 
 from result import Ok, Err
-from enum import Enum
+from enum   import Enum
 
-# Set how many rows and columns we will have
-ROW_COUNT = 15
+
+## Constants
+
+ROW_COUNT    = 15
 COLUMN_COUNT = 15
+WIDTH        = 50  # Grid width
+HEIGHT       = 50  # Grid height
+MARGIN       = 5   # This sets the margin between each cell and on the edges of the screen.
 
-# This sets the WIDTH and HEIGHT of each grid location
-WIDTH = 50
-HEIGHT = 50
+BOTTOM_MARGIN = 100
+RIGHT_MARGIN  = 400
 
-# This sets the margin between each cell and on the edges of the screen.
-MARGIN = 5
+SCREEN_WIDTH  = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
+SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN + BOTTOM_MARGIN
+SCREEN_TITLE  = "Scrabble"
 
+#TODO convert to Enum
 NO = 1
 DL = 2
 DW = 3
@@ -55,36 +52,50 @@ BOARD = [[TW, NO, NO, DL, NO, NO, NO, TW, NO, NO, NO, DL, NO, NO, TW],
          [TW, NO, NO, DL, NO, NO, NO, TW, NO, NO, NO, DL, NO, NO, TW]]
 
 TILE_SCORE = {
-    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1, 'J': 8,
+    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2,  'H': 4, 'I': 1, 'J': 8,
     'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1,
     'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10}
 
-COLOR_NORMAL = (200, 196, 172)
-COLOR_TRIPLE_WORD = (241, 108, 77)
-COLOR_TRIPLE_LETTER = (58, 156, 184)
-COLOR_DOUBLE_WORD = (250, 187, 170)
+TILE_BAG = \
+    ['A'] * 9 + ['B'] * 2 + ['C'] * 2 + ['D'] * 4 + ['E'] * 12 + ['F'] * 2 + ['G'] * 3 + \
+    ['H'] * 2 + ['I'] * 9 + ['J'] * 1 + ['K'] * 1  + ['L'] * 4 + ['M'] * 2 + ['N'] * 6 + \
+    ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6  + ['S'] * 4 + ['T'] * 6 + ['U'] * 4 + \
+    ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2  + ['Z'] * 1
+
+COLOR_NORMAL        = (200, 196, 172)
+COLOR_TRIPLE_WORD   = (241, 108,  77)
+COLOR_TRIPLE_LETTER = ( 58, 156, 184)
+COLOR_DOUBLE_WORD   = (250, 187, 170)
 COLOR_DOUBLE_LETTER = (189, 215, 214)
 
+
+## Enumerators
 
 class Direction(Enum):
     ACROSS = 1
     DOWN = 2
 
 
+## Free functions
+
 def letter_multiplier(row, col):
-    if BOARD[row][col] == DL:
-        return 2
-    if BOARD[row][col] == TL:
-        return 3
+    if BOARD[row][col] == DL: return 2
+    if BOARD[row][col] == TL: return 3
     return 1
 
 
 def word_multiplier(row, col):
-    if BOARD[row][col] == DW:
-        return 2
-    if BOARD[row][col] == TW:
-        return 3
+    if BOARD[row][col] == DW: return 2
+    if BOARD[row][col] == TW: return 3
     return 1
+
+
+def tile_color(row, col):
+    if BOARD[row][col] == DL: return COLOR_DOUBLE_LETTER
+    if BOARD[row][col] == DW: return COLOR_DOUBLE_WORD
+    if BOARD[row][col] == TL: return COLOR_TRIPLE_LETTER
+    if BOARD[row][col] == TW: return COLOR_TRIPLE_WORD
+    return COLOR_NORMAL
 
 
 def score_word(board, dictionary, dir, letters, row, col):
@@ -99,11 +110,11 @@ def score_word(board, dictionary, dir, letters, row, col):
 
     # currently only support crossword style #TODO support adjacent
     word_played = ''
-    score = 0
-    word_mult = 1
-    row_delta = 1 if dir == Direction.DOWN else 0
-    col_delta = 0 if dir == Direction.DOWN else 1
-    crosses = False
+    score       = 0
+    word_mult   = 1
+    row_delta   = 1 if dir == Direction.DOWN else 0
+    col_delta   = 0 if dir == Direction.DOWN else 1
+    crosses     = False
 
     for letter in letters:
         while board[row][col] != '.':
@@ -131,33 +142,6 @@ def score_word(board, dictionary, dir, letters, row, col):
     return Ok((score, word_played))
 
 
-def tile_color(row, col):
-    if BOARD[row][col] == DL:
-        return COLOR_DOUBLE_LETTER
-    if BOARD[row][col] == DW:
-        return COLOR_DOUBLE_WORD
-    if BOARD[row][col] == TL:
-        return COLOR_TRIPLE_LETTER
-    if BOARD[row][col] == TW:
-        return COLOR_TRIPLE_WORD
-    return COLOR_NORMAL
-
-
-BOTTOM_MARGIN = 100
-RIGHT_MARGIN = 400
-
-# Do the math to figure out our screen dimensions
-SCREEN_WIDTH = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
-SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN + BOTTOM_MARGIN
-SCREEN_TITLE = "Scrabble"
-
-
-TILE_BAG = \
-    ['A'] * 9 + ['B'] * 2 + ['C'] * 2 + ['D'] * 4 + ['E'] * 12 + ['F'] * 2 + \
-    ['G'] * 3 + ['H'] * 2 + ['I'] * 9 + ['J'] * 1 + ['K'] * 1 + ['L'] * 4 + ['M'] * 2 + \
-    ['N'] * 6 + ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6 + ['S'] * 4 + ['T'] * 6 + \
-    ['U'] * 4 + ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2 + ['Z'] * 1
-
 
 class MyGame(arcade.Window):
     """
@@ -182,7 +166,7 @@ class MyGame(arcade.Window):
         arcade.set_background_color(arcade.color.BLACK)
 
         # Cursor for typings
-        self.cursor = 0  # 0 = off, 1 = across, 2 = down
+        self.cursor   = 0  # 0 = off, 1 = across, 2 = down
         self.cursor_x = 0
         self.cursor_y = 0
 
@@ -190,7 +174,7 @@ class MyGame(arcade.Window):
         random.shuffle(TILE_BAG)
         tile_bag_index = 0
 
-        self.your_tiles = TILE_BAG[0: 7]
+        self.your_tiles      = TILE_BAG[0: 7]
         self.oppenents_tiles = TILE_BAG[7: 14]
 
         self.DICTIONARY = set()
@@ -204,15 +188,10 @@ class MyGame(arcade.Window):
         print(self.oppenents_tiles)
         print(len(self.DICTIONARY))
 
-        print(sum((len(list(it.permutations(self.your_tiles, i)))
-                   for i in range(7, 1, -1))))
+        print(sum((len(list(it.permutations(self.your_tiles, i)))         for i in range(7, 1, -1))))
+        print(sum((len(list(it.permutations(self.your_tiles + ['A'], i))) for i in range(8, 1, -1))))
 
-        print(sum((len(list(it.permutations(self.your_tiles + ['A'], i)))
-                   for i in range(8, 1, -1))))
-
-        words = {''.join(p) for i in range(7, 1, -1)
-                 for p in it.permutations(self.your_tiles, i) if ''.join(p) in self.DICTIONARY}
-        print(words)
+        words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(self.your_tiles, i)}  # if ''.join(p) in self.DICTIONARY}
 
         print(score_word(self.grid, self.DICTIONARY, Direction.DOWN, 'WRLD', 6, 7))
 
@@ -241,27 +220,19 @@ class MyGame(arcade.Window):
         # Draw the grid
         for row in range(ROW_COUNT):
             for column in range(COLUMN_COUNT):
-                # Figure out what color to draw the box
-                color = tile_color(
-                    row, column) if self.grid[row][column] == '.' else arcade.color.AMETHYST
-                # Do the math to figure out where the box is
-                x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
-                y = (MARGIN + HEIGHT) * row + MARGIN + \
-                    HEIGHT // 2 + BOTTOM_MARGIN
-                # Draw the box
+                color = tile_color(row, column) if self.grid[row][column] == '.' else arcade.color.AMETHYST
+                x     = (MARGIN + WIDTH)  * column + MARGIN + WIDTH // 2
+                y     = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
                 if self.grid[row][column] != '.':
-                    arcade.draw_text(self.grid[row][column], x-15, y-25,
-                                     arcade.color.WHITE, 40, bold=True)
+                    arcade.draw_text(self.grid[row][column], x-15, y-25, arcade.color.WHITE, 40, bold=True)
 
         # Draw cursor
         if self.cursor:
             color = arcade.color.WHITE if self.cursor == 1 else arcade.color.BLACK
-            x = (MARGIN + WIDTH) * self.cursor_x + MARGIN + WIDTH // 2
-            y = (MARGIN + HEIGHT) * self.cursor_y + MARGIN + \
-                HEIGHT // 2 + BOTTOM_MARGIN
-            # Draw the box
+            x = (MARGIN + WIDTH)  * self.cursor_x + MARGIN + WIDTH  // 2
+            y = (MARGIN + HEIGHT) * self.cursor_y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
         # Draw tiles
@@ -273,8 +244,7 @@ class MyGame(arcade.Window):
 
             # Draw the box - TODO refactor this into draw_tile
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
-            arcade.draw_text(tile, x-15, y-25,
-                             arcade.color.WHITE, 40, bold=True)
+            arcade.draw_text(tile, x-15, y-25, arcade.color.WHITE, 40, bold=True)
 
     def on_mouse_press(self, x, y, button, modifiers):
         """
@@ -283,24 +253,13 @@ class MyGame(arcade.Window):
 
         # Change the x/y screen coordinates to grid coordinates
         column = int(x // (WIDTH + MARGIN))
-        row = int((y - BOTTOM_MARGIN) // (HEIGHT + MARGIN))
+        row    = int((y - BOTTOM_MARGIN) // (HEIGHT + MARGIN))
 
         self.cursor_x = column
         self.cursor_y = row
-        self.cursor = (self.cursor + 1) % 3
+        self.cursor   = (self.cursor + 1) % 3
 
-        print(
-            f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})")
-
-        # Make sure we are on-grid. It is possible to click in the upper right
-        # corner in the margin and go to a grid location that doesn't exist
-        # if row < ROW_COUNT and column < COLUMN_COUNT:
-
-        #     # Flip the location between 1 and 0.
-        #     if self.grid[row][column] == 0:
-        #         self.grid[row][column] = 1
-        #     else:
-        #         self.grid[row][column] = 0
+        print(f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})")
 
 
 def main():
