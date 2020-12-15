@@ -16,6 +16,10 @@ python -m arcade.examples.array_backed_grid
 import arcade
 import random  # shuffle
 import itertools as it  # permutations
+import numpy as np  # transpose
+
+from result import Ok, Err
+from enum import Enum
 
 # Set how many rows and columns we will have
 ROW_COUNT = 15
@@ -55,6 +59,24 @@ COLOR_TRIPLE_WORD = (241, 108, 77)
 COLOR_TRIPLE_LETTER = (58, 156, 184)
 COLOR_DOUBLE_WORD = (250, 187, 170)
 COLOR_DOUBLE_LETTER = (189, 215, 214)
+
+
+class Direction(Enum):
+    ACROSS = 1
+    DOWN = 2
+
+
+def score_word(board, dir, letters, row, col):
+    if dir == Direction.ACROSS:
+        if len([1 for c in board[row][col:] if c != '.']) < len(letters):
+            return Err('too many letters')
+    else:
+        if len([1 for c in np.transpose(board)[col][row:] if c == '.']) < len(letters):
+            return Err('too many letters')
+
+    # TODO
+
+    return Ok(0)
 
 
 def tile_color(row, col):
@@ -98,8 +120,12 @@ class MyGame(arcade.Window):
         super().__init__(width, height, title)
 
         # Create a 2 dimensional array. A two dimensional array is simply a list of lists.
-        self.grid = ['.' * 15] * 15
-        self.grid[7] = '...HELLO.......'
+        self.grid = [['.'] * 15 for i in range(15)]
+        self.grid[7][3] = 'H'
+        self.grid[7][4] = 'E'
+        self.grid[7][5] = 'L'
+        self.grid[7][6] = 'L'
+        self.grid[7][7] = 'O'
 
         arcade.set_background_color(arcade.color.BLACK)
 
@@ -112,8 +138,8 @@ class MyGame(arcade.Window):
         random.shuffle(TILE_BAG)
         tile_bag_index = 0
 
-        self.your_tiles = TILE_BAG[0:7]
-        self.oppenents_tiles = TILE_BAG[7:14]
+        self.your_tiles = TILE_BAG[0: 7]
+        self.oppenents_tiles = TILE_BAG[7: 14]
 
         DICTIONARY = set()
         with open('dictionary.txt') as f:
@@ -135,6 +161,8 @@ class MyGame(arcade.Window):
         words = {''.join(p) for i in range(7, 4, -1)
                  for p in it.permutations(self.your_tiles, i) if ''.join(p) in DICTIONARY}
         print(words)
+
+        print(score_word(self.grid, Direction.DOWN, 'WRLD', 6, 7))
 
     def on_draw(self):
         """
