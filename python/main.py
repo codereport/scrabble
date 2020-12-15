@@ -54,6 +54,11 @@ BOARD = [[TW, NO, NO, DL, NO, NO, NO, TW, NO, NO, NO, DL, NO, NO, TW],
          [NO, DW, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, DW, NO],
          [TW, NO, NO, DL, NO, NO, NO, TW, NO, NO, NO, DL, NO, NO, TW]]
 
+TILE_SCORE = {
+    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1, 'J': 8,
+    'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1,
+    'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10}
+
 COLOR_NORMAL = (200, 196, 172)
 COLOR_TRIPLE_WORD = (241, 108, 77)
 COLOR_TRIPLE_LETTER = (58, 156, 184)
@@ -64,6 +69,22 @@ COLOR_DOUBLE_LETTER = (189, 215, 214)
 class Direction(Enum):
     ACROSS = 1
     DOWN = 2
+
+
+def letter_multiplier(row, col):
+    if BOARD[row][col] == DL:
+        return 2
+    if BOARD[row][col] == TL:
+        return 3
+    return 1
+
+
+def word_multiplier(row, col):
+    if BOARD[row][col] == DW:
+        return 2
+    if BOARD[row][col] == TW:
+        return 3
+    return 1
 
 
 def score_word(board, dictionary, dir, letters, row, col):
@@ -78,6 +99,8 @@ def score_word(board, dictionary, dir, letters, row, col):
 
     # currently only support crossword style #TODO support adjacent
     word_played = ''
+    score = 0
+    word_mult = 1
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
     crosses = False
@@ -85,21 +108,27 @@ def score_word(board, dictionary, dir, letters, row, col):
     for letter in letters:
         while board[row][col] != '.':
             word_played = word_played + board[row][col]
+            score += TILE_SCORE.get(board[row][col])
             row += row_delta
             col += col_delta
             crosses = True
         word_played = word_played + letter
+        score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
+        word_mult *= word_multiplier(row, col)
         row += row_delta
         col += col_delta
+
+    score *= word_mult
+    score += 50 if len(letters) == 7 else 0
 
     if not crosses:
         return Err('does not overlap with any other word')
 
     if word_played not in dictionary:
-        return word_played + ' not in dictionary'
+        return Err(word_played + ' not in dictionary')
 
     # TODO return score
-    return Ok(word_played)
+    return Ok((score, word_played))
 
 
 def tile_color(row, col):
@@ -181,11 +210,25 @@ class MyGame(arcade.Window):
         print(sum((len(list(it.permutations(self.your_tiles + ['A'], i)))
                    for i in range(8, 1, -1))))
 
-        words = {''.join(p) for i in range(7, 4, -1)
+        words = {''.join(p) for i in range(7, 1, -1)
                  for p in it.permutations(self.your_tiles, i) if ''.join(p) in self.DICTIONARY}
         print(words)
 
         print(score_word(self.grid, self.DICTIONARY, Direction.DOWN, 'WRLD', 6, 7))
+
+        # hack to generate words
+
+        plays = []
+        for row in range(ROW_COUNT):
+            for col in range(COLUMN_COUNT):
+                for word in words:
+                    score = score_word(
+                        self.grid, self.DICTIONARY, Direction.DOWN, word, row, col)
+                    if score.is_ok():
+                        plays.append(score.unwrap())
+
+        for play in sorted(plays):
+            print(play)
 
     def on_draw(self):
         """
