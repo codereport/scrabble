@@ -280,14 +280,22 @@ class MyGame(arcade.Window):
                 self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
                 if self.cursor == 1: self.cursor_x += 1
                 if self.cursor == 2: self.cursor_y -= 1
+                while self.grid[self.cursor_y][self.cursor_x] != '.':
+                    if self.cursor == 1: self.cursor_x += 1
+                    if self.cursor == 2: self.cursor_y -= 1
+
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
             self.cursor = 0
+
         if key == arcade.key.BACKSPACE:
             if len(self.letters_typed):
                 self.letters_typed.popitem()
                 if self.cursor == 1: self.cursor_x -= 1
                 if self.cursor == 2: self.cursor_y += 1
+                while self.grid[self.cursor_y][self.cursor_x] != '.':
+                    if self.cursor == 1: self.cursor_x -= 1
+                    if self.cursor == 2: self.cursor_y += 1
 
 
 def main():
