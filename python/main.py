@@ -97,7 +97,7 @@ def tile_color(row, col):
     return COLOR_NORMAL
 
 
-def score_word(board, dictionary, dir, letters, row, col):
+def word_score(board, dictionary, dir, letters, row, col):
     if board[row][col] != '.':
         return Err('cannot start word on existing tile')
     if dir == Direction.ACROSS:
@@ -143,14 +143,10 @@ def score_word(board, dictionary, dir, letters, row, col):
 
 
 class MyGame(arcade.Window):
-    """
-    Main application class.
-    """
+    """Main application class"""
 
     def __init__(self, width, height, title):
-        """
-        Set up the application.
-        """
+        """Set up the application"""
 
         super().__init__(width, height, title)
 
@@ -184,25 +180,17 @@ class MyGame(arcade.Window):
         self.letters_typed = {}
 
         # visual verification
-        print(TILE_BAG)
-        print(self.your_tiles)
-        print(self.oppenents_tiles)
-        print(len(self.DICTIONARY))
-
-        print(sum((len(list(it.permutations(self.your_tiles, i)))         for i in range(7, 1, -1))))
-        print(sum((len(list(it.permutations(self.your_tiles + ['A'], i))) for i in range(8, 1, -1))))
+        # print(sum((len(list(it.permutations(self.your_tiles, i)))         for i in range(7, 1, -1))))
+        # print(sum((len(list(it.permutations(self.your_tiles + ['A'], i))) for i in range(8, 1, -1))))
 
         words = {''.join(p) for i in range(4, 1, -1) for p in it.permutations(self.your_tiles, i)}  # if ''.join(p) in self.DICTIONARY}
 
-        print(score_word(self.grid, self.DICTIONARY, Direction.DOWN, 'WRLD', 6, 7))
-
         # hack to generate words
-
         plays = []
         for row in range(ROW_COUNT):
             for col in range(COLUMN_COUNT):
                 for word in words:
-                    score = score_word(self.grid, self.DICTIONARY, Direction.DOWN, word, row, col)
+                    score = word_score(self.grid, self.DICTIONARY, Direction.DOWN, word, row, col)
                     if score.is_ok():
                         plays.append(score.unwrap())
 
@@ -210,16 +198,13 @@ class MyGame(arcade.Window):
             print(play)
 
     def on_draw(self):
-        """
-        Render the screen.
-        """
+        """Render the screen"""
 
-        # This command has to happen before we start drawing
         arcade.start_render()
 
         self.dir = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
         valid_word = len(self.letters_typed) and \
-            score_word(self.grid,
+            word_score(self.grid,
                        self.DICTIONARY,
                        self.dir,
                        ''.join(self.letters_typed.values()),
@@ -235,8 +220,8 @@ class MyGame(arcade.Window):
                 if (row, column) in self.letters_typed:
                     color = played_tile_color
 
-                x     = (MARGIN + WIDTH)  * column + MARGIN + WIDTH // 2
-                y     = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
+                x = (MARGIN + WIDTH)  * column + MARGIN + WIDTH  // 2
+                y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
                 if self.grid[row][column] != '.':
@@ -267,9 +252,7 @@ class MyGame(arcade.Window):
             arcade.draw_text(tile, x-15, y-25, arcade.color.WHITE, 40, bold=True)
 
     def on_mouse_press(self, x, y, button, modifiers):
-        """
-        Called when the user presses a mouse button.
-        """
+        """Called when the user presses a mouse button"""
 
         # Change the x/y screen coordinates to grid coordinates
         column = int(x // (WIDTH + MARGIN))
@@ -282,7 +265,7 @@ class MyGame(arcade.Window):
         print(f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})")
 
     def on_key_release(self, key, modifiers):
-        """Called when the user releases a key. """
+        """Called when the user releases a key"""
 
         if str(chr(key)).isalpha():
             letter = chr(key - 32)
