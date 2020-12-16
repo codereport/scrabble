@@ -9,10 +9,8 @@ import random           # shuffle
 import itertools as it  # permutations
 import numpy     as np  # transpose
 
-from result      import Ok, Err
-from enum        import Enum
-from collections import Counter
-
+from result import Ok, Err
+from enum   import Enum
 
 ## Constants
 
@@ -224,7 +222,7 @@ class MyGame(arcade.Window):
             for column in range(COLUMN_COUNT):
                 color = tile_color(row, column) if self.grid[row][column] == '.' else arcade.color.AMETHYST
                 if (row, column) in self.letters_typed:
-                    color = arcade.color.AO # TODO add validation color SAE
+                    color = arcade.color.DARK_PASTEL_GREEN # TODO add validation color SAE
 
                 x     = (MARGIN + WIDTH)  * column + MARGIN + WIDTH // 2
                 y     = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
@@ -246,7 +244,7 @@ class MyGame(arcade.Window):
         tiles_left = list(self.letters_typed.values())
         for i, tile in enumerate(self.your_tiles):
             if tile in tiles_left:
-                color = arcade.color.AO
+                color = arcade.color.DARK_PASTEL_GREEN
                 tiles_left.remove(tile)
             else:
                 color = arcade.color.AMETHYST
@@ -285,6 +283,11 @@ class MyGame(arcade.Window):
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
             self.cursor = 0
+        if key == arcade.key.BACKSPACE:
+            if len(self.letters_typed):
+                self.letters_typed.popitem()
+                if self.cursor == 1: self.cursor_x -= 1
+                if self.cursor == 2: self.cursor_y += 1
 
 
 def main():
