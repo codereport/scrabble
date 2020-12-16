@@ -307,6 +307,9 @@ class MyGame(arcade.Window):
                     if self.cursor == 1: self.cursor_x -= 1
                     if self.cursor == 2: self.cursor_y += 1
 
+        if key == arcade.key.SPACE:
+            random.shuffle(self.your_tiles)
+
 
 def main():
 
