@@ -217,12 +217,23 @@ class MyGame(arcade.Window):
         # This command has to happen before we start drawing
         arcade.start_render()
 
+        self.dir = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
+        valid_word = len(self.letters_typed) and \
+            score_word(self.grid,
+                       self.DICTIONARY,
+                       self.dir,
+                       ''.join(self.letters_typed.values()),
+                       14 - next(iter(self.letters_typed))[0], # super hacky
+                       next(iter(self.letters_typed))[1]).is_ok()
+
+        played_tile_color = arcade.color.DARK_PASTEL_GREEN if valid_word else arcade.color.SAE
+
         # Draw the grid
         for row in range(ROW_COUNT):
             for column in range(COLUMN_COUNT):
                 color = tile_color(row, column) if self.grid[row][column] == '.' else arcade.color.AMETHYST
                 if (row, column) in self.letters_typed:
-                    color = arcade.color.DARK_PASTEL_GREEN # TODO add validation color SAE
+                    color = played_tile_color
 
                 x     = (MARGIN + WIDTH)  * column + MARGIN + WIDTH // 2
                 y     = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
@@ -244,7 +255,7 @@ class MyGame(arcade.Window):
         tiles_left = list(self.letters_typed.values())
         for i, tile in enumerate(self.your_tiles):
             if tile in tiles_left:
-                color = arcade.color.DARK_PASTEL_GREEN
+                color = played_tile_color
                 tiles_left.remove(tile)
             else:
                 color = arcade.color.AMETHYST
