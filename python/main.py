@@ -24,8 +24,8 @@ MARGIN       = 5   # This sets the margin between each cell and on the edges of 
 BOTTOM_MARGIN = 100
 RIGHT_MARGIN  = 400
 
-SCREEN_WIDTH  = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
-SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN + BOTTOM_MARGIN
+SCREEN_WIDTH  = (WIDTH + MARGIN)  * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
+SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT    + MARGIN + BOTTOM_MARGIN
 SCREEN_TITLE  = "Scrabble"
 
 #TODO convert to Enum
@@ -182,6 +182,8 @@ class MyGame(arcade.Window):
             for line in f:
                 self.DICTIONARY.add(line.strip())
 
+        self.letters_typed = {}
+
         # visual verification
         print(TILE_BAG)
         print(self.your_tiles)
@@ -191,7 +193,7 @@ class MyGame(arcade.Window):
         print(sum((len(list(it.permutations(self.your_tiles, i)))         for i in range(7, 1, -1))))
         print(sum((len(list(it.permutations(self.your_tiles + ['A'], i))) for i in range(8, 1, -1))))
 
-        words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(self.your_tiles, i)}  # if ''.join(p) in self.DICTIONARY}
+        words = {''.join(p) for i in range(4, 1, -1) for p in it.permutations(self.your_tiles, i)}  # if ''.join(p) in self.DICTIONARY}
 
         print(score_word(self.grid, self.DICTIONARY, Direction.DOWN, 'WRLD', 6, 7))
 
@@ -201,8 +203,7 @@ class MyGame(arcade.Window):
         for row in range(ROW_COUNT):
             for col in range(COLUMN_COUNT):
                 for word in words:
-                    score = score_word(
-                        self.grid, self.DICTIONARY, Direction.DOWN, word, row, col)
+                    score = score_word(self.grid, self.DICTIONARY, Direction.DOWN, word, row, col)
                     if score.is_ok():
                         plays.append(score.unwrap())
 
@@ -221,15 +222,20 @@ class MyGame(arcade.Window):
         for row in range(ROW_COUNT):
             for column in range(COLUMN_COUNT):
                 color = tile_color(row, column) if self.grid[row][column] == '.' else arcade.color.AMETHYST
+                if (row, column) in self.letters_typed:
+                    color = arcade.color.SAE
+
                 x     = (MARGIN + WIDTH)  * column + MARGIN + WIDTH // 2
                 y     = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
                 if self.grid[row][column] != '.':
                     arcade.draw_text(self.grid[row][column], x-15, y-25, arcade.color.WHITE, 40, bold=True)
+                elif (row, column) in self.letters_typed:
+                    arcade.draw_text(self.letters_typed.get((row, column)), x-15, y-25, arcade.color.WHITE, 40, bold=True)
 
         # Draw cursor
-        if self.cursor:
+        if self.cursor and len(self.letters_typed) == 0:
             color = arcade.color.WHITE if self.cursor == 1 else arcade.color.BLACK
             x = (MARGIN + WIDTH)  * self.cursor_x + MARGIN + WIDTH  // 2
             y = (MARGIN + HEIGHT) * self.cursor_y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
@@ -260,6 +266,17 @@ class MyGame(arcade.Window):
         self.cursor   = (self.cursor + 1) % 3
 
         print(f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})")
+
+    def on_key_release(self, key, modifiers):
+        """Called when the user releases a key. """
+
+        if str(chr(key)).isalpha():
+            letter = chr(key - 32)
+            print(letter)
+            if letter in self.your_tiles:
+                self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
+                if self.cursor == 1: self.cursor_x += 1
+                if self.cursor == 2: self.cursor_y -= 1
 
 
 def main():
