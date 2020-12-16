@@ -96,6 +96,18 @@ def tile_color(row, col):
     if BOARD[row][col] == TW: return COLOR_TRIPLE_WORD
     return COLOR_NORMAL
 
+def prefix_tiles(board, dir, row, col):
+    row_delta = 1 if dir == Direction.DOWN else 0
+    col_delta = 0 if dir == Direction.DOWN else 1
+    prev_row, prev_col, prefix_tiles = row, col, ''
+    while prev_row - row_delta >= 0 and prev_col - col_delta >= 0:
+        prev_row -= row_delta
+        prev_col -= col_delta
+        if board[prev_row][prev_col] != '.':
+            prefix_tiles += board[prev_row][prev_col]
+        else:
+            break
+    return prefix_tiles[::-1]
 
 def word_score(board, dictionary, dir, letters, row, col):
     if board[row][col] != '.':
@@ -108,12 +120,12 @@ def word_score(board, dictionary, dir, letters, row, col):
             return Err('outside of board')
 
     # currently only support crossword style #TODO support adjacent
-    word_played = ''
+    word_played = prefix_tiles(board, dir, row, col) # TODO currently aren't included in score
     score       = 0
     word_mult   = 1
     row_delta   = 1 if dir == Direction.DOWN else 0
     col_delta   = 0 if dir == Direction.DOWN else 1
-    crosses     = False
+    crosses     = True if len(word_played) else False
 
     for letter in letters:
         while board[row][col] != '.':
@@ -203,13 +215,17 @@ class MyGame(arcade.Window):
         arcade.start_render()
 
         self.dir = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
-        valid_word = len(self.letters_typed) and \
-            word_score(self.grid,
-                       self.DICTIONARY,
-                       self.dir,
-                       ''.join(self.letters_typed.values()),
-                       14 - next(iter(self.letters_typed))[0], # super hacky
-                       next(iter(self.letters_typed))[1]).is_ok()
+        if len(self.letters_typed):
+            start_row, start_col = next(iter(self.letters_typed))
+            valid_word = len(self.letters_typed) and \
+                word_score(self.grid,
+                           self.DICTIONARY,
+                           self.dir,
+                           ''.join(self.letters_typed.values()),
+                           14 - start_row, # super hacky
+                           start_col).is_ok()
+        else:
+            valid_word = False
 
         played_tile_color = arcade.color.DARK_PASTEL_GREEN if valid_word else arcade.color.SAE
 
