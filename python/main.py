@@ -99,21 +99,35 @@ def tile_color(row, col):
 def prefix_tiles(board, dir, row, col):
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
-    prev_row, prev_col, prefix_tiles = row, col, ''
+    prev_row, prev_col, tiles = row, col, ''
     while prev_row - row_delta >= 0 and prev_col - col_delta >= 0:
         prev_row -= row_delta
         prev_col -= col_delta
         if board[prev_row][prev_col] != '.':
-            prefix_tiles += board[prev_row][prev_col]
+            tiles += board[prev_row][prev_col]
         else:
             break
-    return prefix_tiles[::-1]
+    return tiles[::-1]
+
+def suffix_tiles(board, dir, row, col):
+    row_delta = 1 if dir == Direction.DOWN else 0
+    col_delta = 0 if dir == Direction.DOWN else 1
+    next_row, next_col, tiles = row, col, ''
+    while next_row + row_delta < 15 and next_col + col_delta < 15:
+        next_row += row_delta
+        next_col += col_delta
+        if board[next_row][next_col] != '.':
+            tiles += board[next_row][next_col]
+        else:
+            break
+    return tiles
 
 def word_score(board, dictionary, dir, letters, row, col):
+    row = 14 - row
     if board[row][col] != '.':
         return Err('cannot start word on existing tile')
     if dir == Direction.ACROSS:
-        if len([1 for c in board[row][col:] if c != '.']) < len(letters):
+        if len([1 for c in board[row][col:] if c == '.']) < len(letters):
             return Err('outside of board')
     else:
         if len([1 for c in np.transpose(board)[col][row:] if c == '.']) < len(letters):
@@ -140,10 +154,13 @@ def word_score(board, dictionary, dir, letters, row, col):
         row += row_delta
         col += col_delta
 
+    suffix = suffix_tiles(board, dir, row - row_delta, col - col_delta)
+    word_played += suffix
+
     score *= word_mult
     score += 50 if len(letters) == 7 else 0
 
-    if not crosses:
+    if not crosses and not len(suffix):
         return Err('does not overlap with any other word')
 
     if word_played not in dictionary:
@@ -179,7 +196,7 @@ class MyGame(arcade.Window):
 
         # Setup game
         random.shuffle(TILE_BAG)
-        tile_bag_index = 0
+        self.tile_bag_index = 14
 
         self.your_tiles      = TILE_BAG[0: 7]
         self.oppenents_tiles = TILE_BAG[7: 14]
@@ -198,41 +215,29 @@ class MyGame(arcade.Window):
         words = {''.join(p) for i in range(4, 1, -1) for p in it.permutations(self.your_tiles, i)}  # if ''.join(p) in self.DICTIONARY}
 
         # hack to generate words
-        plays = []
-        for row in range(ROW_COUNT):
-            for col in range(COLUMN_COUNT):
-                for word in words:
-                    score = word_score(self.grid, self.DICTIONARY, Direction.DOWN, word, row, col)
-                    if score.is_ok():
-                        plays.append(score.unwrap())
+        # plays = []
+        # for row in range(ROW_COUNT):
+        #     for col in range(COLUMN_COUNT):
+        #         for word in words:
+        #             score = word_score(self.grid, self.DICTIONARY, Direction.DOWN, word, row, col)
+        #             if score.is_ok():
+        #                 plays.append(score.unwrap())
 
-        for play in sorted(plays):
-            print(play)
+        # for play in sorted(plays):
+        #     print(play)
 
     def on_draw(self):
         """Render the screen"""
 
         arcade.start_render()
 
-        self.dir = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
-        if len(self.letters_typed):
-            start_row, start_col = next(iter(self.letters_typed))
-            valid_word = len(self.letters_typed) and \
-                word_score(self.grid,
-                           self.DICTIONARY,
-                           self.dir,
-                           ''.join(self.letters_typed.values()),
-                           14 - start_row, # super hacky
-                           start_col).is_ok()
-        else:
-            valid_word = False
-
-        played_tile_color = arcade.color.DARK_PASTEL_GREEN if valid_word else arcade.color.SAE
+        played_tile_color = arcade.color.DARK_PASTEL_GREEN if self.is_playable() else arcade.color.SAE
 
         # Draw the grid
         for row in range(ROW_COUNT):
+            render_row = 14 - row
             for column in range(COLUMN_COUNT):
-                color = tile_color(row, column) if self.grid[row][column] == '.' else arcade.color.AMETHYST
+                color = tile_color(row, column) if self.grid[render_row][column] == '.' else arcade.color.AMETHYST
                 if (row, column) in self.letters_typed:
                     color = played_tile_color
 
@@ -240,8 +245,8 @@ class MyGame(arcade.Window):
                 y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
-                if self.grid[row][column] != '.':
-                    arcade.draw_text(self.grid[row][column], x-15, y-25, arcade.color.WHITE, 40, bold=True)
+                if self.grid[render_row][column] != '.':
+                    arcade.draw_text(self.grid[render_row][column], x-15, y-25, arcade.color.WHITE, 40, bold=True)
                 elif (row, column) in self.letters_typed:
                     arcade.draw_text(self.letters_typed.get((row, column)), x-15, y-25, arcade.color.WHITE, 40, bold=True)
 
@@ -252,7 +257,7 @@ class MyGame(arcade.Window):
             y = (MARGIN + HEIGHT) * self.cursor_y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
-        # Draw tiles
+        # Draw tile rack
         tiles_left = list(self.letters_typed.values())
         for i, tile in enumerate(self.your_tiles):
             if tile in tiles_left:
@@ -285,12 +290,13 @@ class MyGame(arcade.Window):
 
         if str(chr(key)).isalpha():
             letter = chr(key - 32)
-            print(letter)
             if letter in self.your_tiles:
                 self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
                 if self.cursor == 1: self.cursor_x += 1
                 if self.cursor == 2: self.cursor_y -= 1
-                while self.grid[self.cursor_y][self.cursor_x] != '.':
+                while self.cursor_y > 0  and \
+                      self.cursor_x < 14 and \
+                      self.grid[14-self.cursor_y][self.cursor_x] != '.':
                     if self.cursor == 1: self.cursor_x += 1
                     if self.cursor == 2: self.cursor_y -= 1
 
@@ -303,12 +309,38 @@ class MyGame(arcade.Window):
                 self.letters_typed.popitem()
                 if self.cursor == 1: self.cursor_x -= 1
                 if self.cursor == 2: self.cursor_y += 1
-                while self.grid[self.cursor_y][self.cursor_x] != '.':
+                while self.grid[14-self.cursor_y][self.cursor_x] != '.':
                     if self.cursor == 1: self.cursor_x -= 1
                     if self.cursor == 2: self.cursor_y += 1
 
         if key == arcade.key.SPACE:
             random.shuffle(self.your_tiles)
+
+        if key == arcade.key.ENTER:
+            if self.is_playable():
+                for (row, col), letter in self.letters_typed.items():
+                    self.your_tiles.remove(letter)
+                    self.grid[14-row][col] = letter
+                tiles_needed         = 7 - len(self.your_tiles)
+                self.your_tiles     += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+                self.tile_bag_index += tiles_needed
+                self.letters_typed.clear()
+                self.cursor = 0
+
+    def is_playable(self):
+        if len(self.letters_typed):
+            start_row, start_col = next(iter(self.letters_typed))
+            score = word_score(self.grid,
+                               self.DICTIONARY,
+                               Direction.ACROSS if self.cursor == 1 else Direction.DOWN,
+                               ''.join(self.letters_typed.values()),
+                               start_row, # super hacky
+                               start_col)
+            if score.is_ok():
+                print(score.value)
+            return score.is_ok()
+        else:
+            return False
 
 
 def main():
