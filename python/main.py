@@ -12,6 +12,10 @@ import numpy          as np  # transpose
 
 from result import Ok, Err
 from enum   import Enum
+from tqdm   import tqdm, trange
+
+import multiprocessing
+from joblib import Parallel, delayed
 
 ## Constants
 
@@ -202,7 +206,16 @@ def word_score(board, dictionary, dir, letters, row, col, first_call):
     # TODO return score
     return Ok((score, word_played))
 
-
+def word_scores_for_row(board, dictionary, letters, row):
+    words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(letters, i)}
+    plays = []
+    for col in range(COLUMN_COUNT):
+        for word in words:
+            score = word_score(board, dictionary, Direction.DOWN, word, row, col, True)
+            if score.is_ok(): plays.append(score.unwrap())
+            score = word_score(board, dictionary, Direction.ACROSS, word, row, col, True)
+            if score.is_ok(): plays.append(score.unwrap())
+    return plays
 
 class MyGame(arcade.Window):
     """Main application class"""
@@ -235,24 +248,6 @@ class MyGame(arcade.Window):
                 self.DICTIONARY.add(line.strip())
 
         self.letters_typed = {}
-
-        # visual verification
-        # print(sum((len(list(it.permutations(self.your_tiles, i)))         for i in range(7, 1, -1))))
-        # print(sum((len(list(it.permutations(self.your_tiles + ['A'], i))) for i in range(8, 1, -1))))
-
-        words = {''.join(p) for i in range(4, 1, -1) for p in it.permutations(self.your_tiles, i)}  # if ''.join(p) in self.DICTIONARY}
-
-        # hack to generate words
-        # plays = []
-        # for row in range(ROW_COUNT):
-        #     for col in range(COLUMN_COUNT):
-        #         for word in words:
-        #             score = word_score(self.grid, self.DICTIONARY, Direction.DOWN, word, row, col)
-        #             if score.is_ok():
-        #                 plays.append(score.unwrap())
-
-        # for play in sorted(plays):
-        #     print(play)
 
     def on_draw(self):
         """Render the screen"""
@@ -346,6 +341,12 @@ class MyGame(arcade.Window):
 
         if key == arcade.key.ENTER:
             if self.is_playable():
+                scores = Parallel(n_jobs=12, verbose=20)\
+                    (delayed(word_scores_for_row)\
+                        (self.grid, self.DICTIONARY, self.your_tiles, row) for row in range(15))
+                for play in sorted(mt.flatten(scores)):
+                    print(play)
+
                 for (row, col), letter in self.letters_typed.items():
                     self.your_tiles.remove(letter)
                     self.grid[14-row][col] = letter
@@ -365,8 +366,8 @@ class MyGame(arcade.Window):
                                start_row, # super hacky
                                start_col,
                                True)
-            if score.is_ok():
-                print(score.value)
+            # if score.is_ok():
+            print(score.value)
             return score.is_ok()
         else:
             return False
