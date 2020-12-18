@@ -5,9 +5,10 @@ Started from https://arcade.academy/examples/array_backed_grid.html#array-backed
 """
 
 import arcade
-import random           # shuffle
-import itertools as it  # permutations
-import numpy     as np  # transpose
+import random                # shuffle
+import itertools      as it  # permutations
+import more_itertools as mt  # flatten
+import numpy          as np  # transpose
 
 from result import Ok, Err
 from enum   import Enum
@@ -124,6 +125,9 @@ def suffix_tiles(board, dir, row, col):
             break
     return (tiles, score)
 
+def is_first_turn(board):
+    return all('.' == c for c in mt.flatten(board))
+
 def word_score(board, dictionary, dir, letters, row, col, first_call):
     row = 14 - row
     if board[row][col] != '.':
@@ -141,6 +145,7 @@ def word_score(board, dictionary, dir, letters, row, col, first_call):
     row_delta      = 1 if dir == Direction.DOWN else 0
     col_delta      = 0 if dir == Direction.DOWN else 1
     crosses        = True if len(word_played) else False
+    valid_start    = False
 
     perpandicular_words = []
 
@@ -162,6 +167,8 @@ def word_score(board, dictionary, dir, letters, row, col, first_call):
             if (col + 1 <= 14 and board[row][col+1] != '.') or \
                (col - 1 >= 0  and board[row][col-1] != '.'):
                 perpandicular_words.append((letter, (row, col)))
+        if row * col == 49:
+            valid_start = True
         row += row_delta
         col += col_delta
 
@@ -183,7 +190,11 @@ def word_score(board, dictionary, dir, letters, row, col, first_call):
                 return res
 
     if not crosses and not len(suffix) and not len(perpandicular_words) and first_call:
-        return Err('does not overlap with any other word')
+        if is_first_turn(board):
+            if not valid_start:
+                return Err('first move must be through center tile')
+        else:
+            return Err('does not overlap with any other word')
 
     if word_played not in dictionary:
         return Err(word_played + ' not in dictionary')
@@ -203,11 +214,6 @@ class MyGame(arcade.Window):
 
         # Create a 2 dimensional array. A two dimensional array is simply a list of lists.
         self.grid = [['.'] * 15 for i in range(15)]
-        self.grid[7][3] = 'H'
-        self.grid[7][4] = 'E'
-        self.grid[7][5] = 'L'
-        self.grid[7][6] = 'L'
-        self.grid[7][7] = 'O'
 
         arcade.set_background_color(arcade.color.BLACK)
 
