@@ -124,7 +124,7 @@ def suffix_tiles(board, dir, row, col):
             break
     return (tiles, score)
 
-def word_score(board, dictionary, dir, letters, row, col):
+def word_score(board, dictionary, dir, letters, row, col, first_call):
     row = 14 - row
     if board[row][col] != '.':
         return Err('cannot start word on existing tile')
@@ -142,6 +142,8 @@ def word_score(board, dictionary, dir, letters, row, col):
     col_delta      = 0 if dir == Direction.DOWN else 1
     crosses        = True if len(word_played) else False
 
+    perpandicular_words = []
+
     for letter in letters:
         while board[row][col] != '.':
             word_played = word_played + board[row][col]
@@ -152,6 +154,14 @@ def word_score(board, dictionary, dir, letters, row, col):
         word_played = word_played + letter
         score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         word_mult *= word_multiplier(row, col)
+        if dir == Direction.ACROSS:
+            if (row + 1 <= 14 and board[row+1][col] != '.') or \
+               (row - 1 >= 0  and board[row-1][col] != '.'):
+                perpandicular_words.append((letter, (row, col)))
+        else:
+            if (col + 1 <= 14 and board[row][col+1] != '.') or \
+               (col - 1 >= 0  and board[row][col-1] != '.'):
+                perpandicular_words.append((letter, (row, col)))
         row += row_delta
         col += col_delta
 
@@ -163,7 +173,16 @@ def word_score(board, dictionary, dir, letters, row, col):
     score *= word_mult
     score += 50 if len(letters) == 7 else 0
 
-    if not crosses and not len(suffix):
+    if first_call:
+        opposite_dir = Direction.ACROSS if dir == Direction.DOWN else Direction.DOWN
+        for word, (r, c) in perpandicular_words:
+            res = word_score(board, dictionary, opposite_dir, word, 14-r, c, False)
+            if res.is_ok():
+                score += res.value[0]
+            else:
+                return res
+
+    if not crosses and not len(suffix) and not len(perpandicular_words) and first_call:
         return Err('does not overlap with any other word')
 
     if word_played not in dictionary:
@@ -338,7 +357,8 @@ class MyGame(arcade.Window):
                                Direction.ACROSS if self.cursor == 1 else Direction.DOWN,
                                ''.join(self.letters_typed.values()),
                                start_row, # super hacky
-                               start_col)
+                               start_col,
+                               True)
             if score.is_ok():
                 print(score.value)
             return score.is_ok()
