@@ -99,28 +99,30 @@ def tile_color(row, col):
 def prefix_tiles(board, dir, row, col):
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
-    prev_row, prev_col, tiles = row, col, ''
+    prev_row, prev_col, tiles, score = row, col, '', 0
     while prev_row - row_delta >= 0 and prev_col - col_delta >= 0:
         prev_row -= row_delta
         prev_col -= col_delta
         if board[prev_row][prev_col] != '.':
             tiles += board[prev_row][prev_col]
+            score += TILE_SCORE.get(board[prev_row][prev_col])
         else:
             break
-    return tiles[::-1]
+    return (tiles[::-1], score)
 
 def suffix_tiles(board, dir, row, col):
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
-    next_row, next_col, tiles = row, col, ''
+    next_row, next_col, tiles, score = row, col, '', 0
     while next_row + row_delta < 15 and next_col + col_delta < 15:
         next_row += row_delta
         next_col += col_delta
         if board[next_row][next_col] != '.':
             tiles += board[next_row][next_col]
+            score += TILE_SCORE.get(board[next_row][next_col])
         else:
             break
-    return tiles
+    return (tiles, score)
 
 def word_score(board, dictionary, dir, letters, row, col):
     row = 14 - row
@@ -134,12 +136,11 @@ def word_score(board, dictionary, dir, letters, row, col):
             return Err('outside of board')
 
     # currently only support crossword style #TODO support adjacent
-    word_played = prefix_tiles(board, dir, row, col) # TODO currently aren't included in score
-    score       = 0
-    word_mult   = 1
-    row_delta   = 1 if dir == Direction.DOWN else 0
-    col_delta   = 0 if dir == Direction.DOWN else 1
-    crosses     = True if len(word_played) else False
+    word_played, score = prefix_tiles(board, dir, row, col) # TODO currently aren't included in score
+    word_mult      = 1
+    row_delta      = 1 if dir == Direction.DOWN else 0
+    col_delta      = 0 if dir == Direction.DOWN else 1
+    crosses        = True if len(word_played) else False
 
     for letter in letters:
         while board[row][col] != '.':
@@ -154,8 +155,10 @@ def word_score(board, dictionary, dir, letters, row, col):
         row += row_delta
         col += col_delta
 
-    suffix = suffix_tiles(board, dir, row - row_delta, col - col_delta)
+    suffix, suffix_score = suffix_tiles(board, dir, row - row_delta, col - col_delta)
     word_played += suffix
+
+    score += suffix_score
 
     score *= word_mult
     score += 50 if len(letters) == 7 else 0
