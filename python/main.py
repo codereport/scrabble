@@ -206,15 +206,45 @@ def word_score(board, dictionary, dir, letters, row, col, first_call):
     # TODO return score
     return Ok((score, word_played))
 
-def word_scores_for_row(board, dictionary, letters, row):
-    words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(letters, i)}
+def min_play_length(board, row, col, dir):
+    if is_first_turn(board):
+        return 1
+    if dir == Direction.DOWN:
+        if row - 1 >= 0 and board[row - 1][col] != '.':
+            return 1
+        for i in range(7):
+            if row + i <= 14:
+                if (col - 1     >= 0  and board[row + i][col - 1] != '.') or \
+                   (col + 1     <= 14 and board[row + i][col + 1] != '.') or \
+                   (row + 1 + i <= 14 and board[row + i + 1][col] != '.'):
+                    return i + 1
+    else:
+        if col - 1 >= 0 and board[row][col - 1] != '.':
+            return 1
+        for i in range(7):
+            if col + i <= 14:
+                if (row - 1     >= 0  and board[row - 1][col + i] != '.') or \
+                   (row + 1     <= 14 and board[row + 1][col + i] != '.') or \
+                   (col + 1 + i <= 14 and board[row][col + i + 1] != '.'):
+                    return i + 1
+    return 10
+
+def word_scores_for_row(board, dictionary, row, words):
     plays = []
+    if is_first_turn(board) and row != 7: return plays
     for col in range(COLUMN_COUNT):
-        for word in words:
-            score = word_score(board, dictionary, Direction.DOWN, word, row, col, True)
-            if score.is_ok(): plays.append(score.unwrap())
-            score = word_score(board, dictionary, Direction.ACROSS, word, row, col, True)
-            if score.is_ok(): plays.append(score.unwrap())
+        if board[14-row][col] == '.':
+            if not is_first_turn(board):
+                m = min_play_length(board, 14-row, col, Direction.DOWN)
+                for word in words:
+                    if len(word) >= m:
+                        score = word_score(board, dictionary, Direction.DOWN, word, row, col, True)
+                        if score.is_ok(): plays.append(score.unwrap())
+            m = min_play_length(board, 14-row, col, Direction.ACROSS)
+            for word in words:
+                if len(word) >= m:
+                    score = word_score(board, dictionary, Direction.ACROSS, word, row, col, True)
+                    if score.is_ok(): plays.append(score.unwrap())
     return plays
 
 class MyGame(arcade.Window):
@@ -341,9 +371,10 @@ class MyGame(arcade.Window):
 
         if key == arcade.key.ENTER:
             if self.is_playable():
+                words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(self.your_tiles, i)}
                 scores = Parallel(n_jobs=12, verbose=20)\
                     (delayed(word_scores_for_row)\
-                        (self.grid, self.DICTIONARY, self.your_tiles, row) for row in range(15))
+                        (self.grid, self.DICTIONARY, row, words) for row in range(15))
                 for play in sorted(mt.flatten(scores)):
                     print(play)
 
@@ -371,6 +402,28 @@ class MyGame(arcade.Window):
             return score.is_ok()
         else:
             return False
+
+
+# class WordPermutations():
+
+#     def __init__(self, letters):
+#         self.len1 = {''.join(p) p in it.permutations(self.your_tiles, 1)}
+#         self.len2 = {''.join(p) p in it.permutations(self.your_tiles, 2)}
+#         self.len3 = {''.join(p) p in it.permutations(self.your_tiles, 3)}
+#         self.len4 = {''.join(p) p in it.permutations(self.your_tiles, 4)}
+#         self.len5 = {''.join(p) p in it.permutations(self.your_tiles, 5)}
+#         self.len6 = {''.join(p) p in it.permutations(self.your_tiles, 6)}
+#         self.len7 = {''.join(p) p in it.permutations(self.your_tiles, 7)}
+
+#         self.lo = 1
+#         self.hi = 7
+
+#     def set_range(self, lo, hi):
+#         self.lo, self.hi = lo, hi
+
+#     def __iter__(self):
+#         self.i = iter(len1)
+#         return next(i)
 
 
 def main():
