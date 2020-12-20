@@ -143,8 +143,7 @@ def word_score(board, dictionary, dir, letters, row, col, first_call):
         if len([1 for c in np.transpose(board)[col][row:] if c == '.']) < len(letters):
             return Err('outside of board')
 
-    # currently only support crossword style #TODO support adjacent
-    word_played, score = prefix_tiles(board, dir, row, col) # TODO currently aren't included in score
+    word_played, score = prefix_tiles(board, dir, row, col)
     word_mult      = 1
     row_delta      = 1 if dir == Direction.DOWN else 0
     col_delta      = 0 if dir == Direction.DOWN else 1
@@ -203,7 +202,6 @@ def word_score(board, dictionary, dir, letters, row, col, first_call):
     if word_played not in dictionary:
         return Err(word_played + ' not in dictionary')
 
-    # TODO return score
     return Ok((score, word_played))
 
 def min_play_length(board, row, col, dir):
