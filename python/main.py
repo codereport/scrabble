@@ -199,7 +199,7 @@ def word_score(board, dictionary, dir, letters, row, col, first_call):
         else:
             return Err('does not overlap with any other word')
 
-    if word_played not in dictionary:
+    if word_played not in dictionary and not (len(word_played) == 1 and len(perpandicular_words)):
         return Err(word_played + ' not in dictionary')
 
     return Ok((score, word_played))
