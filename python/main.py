@@ -32,6 +32,10 @@ SCREEN_WIDTH  = (WIDTH + MARGIN)  * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT    + MARGIN + BOTTOM_MARGIN
 SCREEN_TITLE  = "Scrabble"
 
+FONT_SIZE = 30
+HORIZ_TEXT_OFFSET = 15
+VERT_TEXT_OFFSET = 15
+
 #TODO convert to Enum
 NO = 1
 DL = 2
@@ -271,7 +275,7 @@ class MyGame(arcade.Window):
         self.oppenents_tiles = TILE_BAG[7: 14]
 
         self.DICTIONARY = set()
-        with open('dictionary.txt') as f:
+        with open('dictionary_scrabble.txt') as f:
             for line in f:
                 self.DICTIONARY.add(line.strip())
 
@@ -297,9 +301,9 @@ class MyGame(arcade.Window):
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
                 if self.grid[render_row][column] != '.':
-                    arcade.draw_text(self.grid[render_row][column], x-15, y-25, arcade.color.WHITE, 40, bold=True)
+                    arcade.draw_text(self.grid[render_row][column], x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True)
                 elif (row, column) in self.letters_typed:
-                    arcade.draw_text(self.letters_typed.get((row, column)), x-15, y-25, arcade.color.WHITE, 40, bold=True)
+                    arcade.draw_text(self.letters_typed.get((row, column)), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True)
 
         # Draw cursor
         if self.cursor and len(self.letters_typed) == 0:
@@ -321,7 +325,7 @@ class MyGame(arcade.Window):
 
             # Draw the box - TODO refactor this into draw_tile
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
-            arcade.draw_text(tile, x-15, y-25, arcade.color.WHITE, 40, bold=True)
+            arcade.draw_text(tile, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True)
 
     def on_mouse_press(self, x, y, button, modifiers):
         """Called when the user presses a mouse button"""
@@ -370,7 +374,7 @@ class MyGame(arcade.Window):
         if key == arcade.key.ENTER:
             if self.is_playable():
                 words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(self.your_tiles, i)}
-                scores = Parallel(n_jobs=12, verbose=20)\
+                scores = Parallel(n_jobs=15, verbose=20)\
                     (delayed(word_scores_for_row)\
                         (self.grid, self.DICTIONARY, row, words) for row in range(15))
                 for play in sorted(mt.flatten(scores)):
