@@ -312,6 +312,32 @@ class MyGame(arcade.Window):
             y = (MARGIN + HEIGHT) * self.cursor_y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
+        # Draw score boxes
+        # Blue (player score box)
+        column = 15
+        row    = 14
+        color  = COLOR_DOUBLE_LETTER
+        x = (MARGIN + WIDTH)  * column + MARGIN * 2 + (WIDTH * 3.5)  // 2
+        y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
+        arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
+        # Pink (computer score box)
+        column = 15
+        row    = 14
+        color  = COLOR_DOUBLE_WORD
+        x = (MARGIN + WIDTH)  * column + (MARGIN + (WIDTH * 3.5)) + MARGIN * 2 + (WIDTH * 3.5)  // 2
+        y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
+        arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
+
+        # Draw top word boxes
+        for row in range(ROW_COUNT - 1):
+            render_row = 14 - row
+            column = 15
+            color = arcade.color.LIGHT_GRAY
+            TOP_WORD_BOX_WIDTH = (MARGIN // 2 + (WIDTH * 3.5)) * 2
+            x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
+            y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
+            arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
+
         # Draw tile rack
         tiles_left = list(self.letters_typed.values())
         for i, tile in enumerate(self.your_tiles):
