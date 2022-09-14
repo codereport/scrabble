@@ -49,9 +49,9 @@ BOARD = [[TW, NO, NO, DL, NO, NO, NO, TW, NO, NO, NO, DL, NO, NO, TW],
          [DL, NO, NO, DW, NO, NO, NO, DL, NO, NO, NO, DW, NO, NO, DL],
          [NO, NO, NO, NO, DW, NO, NO, NO, NO, NO, DW, NO, NO, NO, NO],
          [NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO],
-         [NO, NO, DL, NO, NO, NO, DL, NO, DL, NO, NO, NO, NO, DL, NO],
+         [NO, NO, DL, NO, NO, NO, DL, NO, DL, NO, NO, NO, DL, NO, NO],
          [TW, NO, NO, DL, NO, NO, NO, DW, NO, NO, NO, DL, NO, NO, TW],
-         [NO, NO, DL, NO, NO, NO, DL, NO, DL, NO, NO, NO, NO, DL, NO],
+         [NO, NO, DL, NO, NO, NO, DL, NO, DL, NO, NO, NO, DL, NO, NO],
          [NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO],
          [NO, NO, NO, NO, DW, NO, NO, NO, NO, NO, DW, NO, NO, NO, NO],
          [DL, NO, NO, DW, NO, NO, NO, DL, NO, NO, NO, DW, NO, NO, DL],
@@ -349,7 +349,7 @@ class MyGame(arcade.Window):
                 self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
                 if self.cursor == 1: self.cursor_x += 1
                 if self.cursor == 2: self.cursor_y -= 1
-                while self.cursor_y >  0  and \
+                while self.cursor_y >= 0  and \
                       self.cursor_x <= 14 and \
                       self.grid[14-self.cursor_y][self.cursor_x] != '.':
                     if self.cursor == 1: self.cursor_x += 1
