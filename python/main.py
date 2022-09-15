@@ -274,6 +274,9 @@ class MyGame(arcade.Window):
         self.your_tiles      = TILE_BAG[0: 7]
         self.oppenents_tiles = TILE_BAG[7: 14]
 
+        self.player_score      = 0
+        self.player_word_ranks = []
+
         self.DICTIONARY = set()
         with open('dictionary_scrabble.txt') as f:
             for line in f:
@@ -320,6 +323,7 @@ class MyGame(arcade.Window):
         x = (MARGIN + WIDTH)  * column + MARGIN * 2 + (WIDTH * 3.5)  // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
+        arcade.draw_text(str(self.player_score), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
         # Pink (computer score box)
         column = 15
         row    = 14
@@ -398,13 +402,25 @@ class MyGame(arcade.Window):
             random.shuffle(self.your_tiles)
 
         if key == arcade.key.ENTER:
-            if self.is_playable():
+            ok, score, word = self.is_playable_and_score_and_word()
+            if ok:
+                self.player_score += score
+
                 words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(self.your_tiles, i)}
                 scores = Parallel(n_jobs=15, verbose=20)\
                     (delayed(word_scores_for_row)\
                         (self.grid, self.DICTIONARY, row, words) for row in range(15))
-                for play in sorted(mt.flatten(scores)):
+                sorted_words = sorted(mt.flatten(scores))
+                for play in sorted_words:
                     print(play)
+
+                rank = 1
+                score_and_word = (score, word)
+                while score_and_word != sorted_words[-rank]:
+                    rank += 1
+
+                self.player_word_ranks.append(rank)
+                print(('{:.1f}'.format(sum(self.player_word_ranks) / len(self.player_word_ranks))), self.player_word_ranks)
 
                 for (row, col), letter in self.letters_typed.items():
                     self.your_tiles.remove(letter)
@@ -416,6 +432,10 @@ class MyGame(arcade.Window):
                 self.cursor = 0
 
     def is_playable(self):
+        ok, _, _ = self.is_playable_and_score_and_word()
+        return ok
+
+    def is_playable_and_score_and_word(self):
         if len(self.letters_typed):
             start_row, start_col = next(iter(self.letters_typed))
             score = word_score(self.grid,
@@ -425,11 +445,13 @@ class MyGame(arcade.Window):
                                start_row, # super hacky
                                start_col,
                                True)
-            # if score.is_ok():
             print(score.value)
-            return score.is_ok()
+            if score.is_ok():
+                return (True, score.value[0], score.value[1])
+            else:
+                return (False, 0, '')
         else:
-            return False
+            return (False, 0, '')
 
 
 # class WordPermutations():
