@@ -12,9 +12,6 @@ import numpy          as np  # transpose
 
 from result import Ok, Err
 from enum   import Enum
-from tqdm   import tqdm, trange
-
-import multiprocessing
 from joblib import Parallel, delayed
 
 ## Constants
@@ -36,7 +33,7 @@ FONT_SIZE = 30
 HORIZ_TEXT_OFFSET = 15
 VERT_TEXT_OFFSET = 15
 
-#TODO convert to Enum
+# TODO convert to Enum
 NO = 1
 DL = 2
 DW = 3
@@ -76,13 +73,11 @@ COLOR_TRIPLE_LETTER = ( 58, 156, 184)
 COLOR_DOUBLE_WORD   = (250, 187, 170)
 COLOR_DOUBLE_LETTER = (189, 215, 214)
 
-
 ## Enumerators
 
 class Direction(Enum):
     ACROSS = 1
     DOWN = 2
-
 
 ## Free functions
 
@@ -249,6 +244,13 @@ def word_scores_for_row(board, dictionary, row, words):
                     if score.is_ok(): plays.append(score.unwrap())
     return plays
 
+class Player():
+
+    def __init__(self, tiles):
+        self.tiles      = tiles
+        self.score      = 0
+        self.word_ranks = []
+
 class MyGame(arcade.Window):
     """Main application class"""
 
@@ -271,11 +273,11 @@ class MyGame(arcade.Window):
         random.shuffle(TILE_BAG)
         self.tile_bag_index = 14
 
-        self.your_tiles      = TILE_BAG[0: 7]
-        self.oppenents_tiles = TILE_BAG[7: 14]
+        self.player   = Player(TILE_BAG[0: 7])
+        self.opponent = Player(TILE_BAG[7:14])
 
-        self.player_score      = 0
-        self.player_word_ranks = []
+        self.players_turn = True
+        # self.curr_player  = self.player
 
         self.DICTIONARY = set()
         with open('dictionary_scrabble.txt') as f:
@@ -323,7 +325,7 @@ class MyGame(arcade.Window):
         x = (MARGIN + WIDTH)  * column + MARGIN * 2 + (WIDTH * 3.5)  // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
-        arcade.draw_text(str(self.player_score), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
+        arcade.draw_text(str(self.player.score), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
         # Pink (computer score box)
         column = 15
         row    = 14
@@ -331,6 +333,7 @@ class MyGame(arcade.Window):
         x = (MARGIN + WIDTH)  * column + (MARGIN + (WIDTH * 3.5)) + MARGIN * 2 + (WIDTH * 3.5)  // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
+        arcade.draw_text(str(self.opponent.score), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
 
         # Draw top word boxes
         for row in range(ROW_COUNT - 1):
@@ -344,7 +347,7 @@ class MyGame(arcade.Window):
 
         # Draw tile rack
         tiles_left = list(self.letters_typed.values())
-        for i, tile in enumerate(self.your_tiles):
+        for i, tile in enumerate(self.player.tiles):
             if tile in tiles_left:
                 color = played_tile_color
                 tiles_left.remove(tile)
@@ -356,6 +359,14 @@ class MyGame(arcade.Window):
             # Draw the box - TODO refactor this into draw_tile
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
             arcade.draw_text(tile, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True)
+
+        if (not self.players_turn):
+            sorted_words = self.generate_all_plays(self.opponent.tiles)
+            for word in sorted_words[-15:]:
+                print(word)
+
+            self.players_turn = True
+
 
     def on_mouse_press(self, x, y, button, modifiers):
         """Called when the user presses a mouse button"""
@@ -375,7 +386,7 @@ class MyGame(arcade.Window):
 
         if str(chr(key)).isalpha():
             letter = chr(key - 32)
-            if letter in self.your_tiles:
+            if letter in self.player.tiles:
                 self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
                 if self.cursor == 1: self.cursor_x += 1
                 if self.cursor == 2: self.cursor_y -= 1
@@ -399,19 +410,15 @@ class MyGame(arcade.Window):
                     if self.cursor == 2: self.cursor_y += 1
 
         if key == arcade.key.SPACE:
-            random.shuffle(self.your_tiles)
+            random.shuffle(self.player.tiles)
 
         if key == arcade.key.ENTER:
             ok, score, word = self.is_playable_and_score_and_word()
             if ok:
-                self.player_score += score
+                self.player.score += score
 
-                words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(self.your_tiles, i)}
-                scores = Parallel(n_jobs=15, verbose=20)\
-                    (delayed(word_scores_for_row)\
-                        (self.grid, self.DICTIONARY, row, words) for row in range(15))
-                sorted_words = sorted(mt.flatten(scores))
-                for play in sorted_words:
+                sorted_words = self.generate_all_plays(self.player.tiles)
+                for play in sorted_words[-15:]:
                     print(play)
 
                 rank = 1
@@ -419,17 +426,19 @@ class MyGame(arcade.Window):
                 while score_and_word != sorted_words[-rank]:
                     rank += 1
 
-                self.player_word_ranks.append(rank)
-                print(('{:.1f}'.format(sum(self.player_word_ranks) / len(self.player_word_ranks))), self.player_word_ranks)
+                self.player.word_ranks.append(rank)
+                print(('{:.1f}'.format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
 
                 for (row, col), letter in self.letters_typed.items():
-                    self.your_tiles.remove(letter)
+                    self.player.tiles.remove(letter)
                     self.grid[14-row][col] = letter
-                tiles_needed         = 7 - len(self.your_tiles)
-                self.your_tiles     += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+                tiles_needed         = 7 - len(self.player.tiles)
+                self.player.tiles   += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
                 self.tile_bag_index += tiles_needed
                 self.letters_typed.clear()
                 self.cursor = 0
+            
+                self.players_turn = False
 
     def is_playable(self):
         ok, _, _ = self.is_playable_and_score_and_word()
@@ -453,28 +462,13 @@ class MyGame(arcade.Window):
         else:
             return (False, 0, '')
 
-
-# class WordPermutations():
-
-#     def __init__(self, letters):
-#         self.len1 = {''.join(p) p in it.permutations(self.your_tiles, 1)}
-#         self.len2 = {''.join(p) p in it.permutations(self.your_tiles, 2)}
-#         self.len3 = {''.join(p) p in it.permutations(self.your_tiles, 3)}
-#         self.len4 = {''.join(p) p in it.permutations(self.your_tiles, 4)}
-#         self.len5 = {''.join(p) p in it.permutations(self.your_tiles, 5)}
-#         self.len6 = {''.join(p) p in it.permutations(self.your_tiles, 6)}
-#         self.len7 = {''.join(p) p in it.permutations(self.your_tiles, 7)}
-
-#         self.lo = 1
-#         self.hi = 7
-
-#     def set_range(self, lo, hi):
-#         self.lo, self.hi = lo, hi
-
-#     def __iter__(self):
-#         self.i = iter(len1)
-#         return next(i)
-
+    def generate_all_plays(self, tiles):
+        words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(tiles, i)}
+        scores = Parallel(n_jobs=15, verbose=20)\
+            (delayed(word_scores_for_row)\
+                (self.grid, self.DICTIONARY, row, words) for row in range(15))
+        print(len(sorted(mt.flatten(scores))))
+        return sorted(mt.flatten(scores))
 
 def main():
 
