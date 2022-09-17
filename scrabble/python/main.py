@@ -274,7 +274,7 @@ class MyGame(arcade.Window):
         self.tile_bag_index = 14
 
         self.player   = Player(TILE_BAG[0: 7])
-        self.opponent = Player(TILE_BAG[7:14])
+        self.computer = Player(TILE_BAG[7:14])
 
         self.players_turn = True
         # self.curr_player  = self.player
@@ -317,8 +317,7 @@ class MyGame(arcade.Window):
             y = (MARGIN + HEIGHT) * self.cursor_y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
-        # Draw score boxes
-        # Blue (player score box)
+        # Draw blue score boxes (for player)
         column = 15
         row    = 14
         color  = COLOR_DOUBLE_LETTER
@@ -326,14 +325,15 @@ class MyGame(arcade.Window):
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
         arcade.draw_text(str(self.player.score), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
-        # Pink (computer score box)
+
+        # Draw pink score box (for computer)
         column = 15
         row    = 14
         color  = COLOR_DOUBLE_WORD
         x = (MARGIN + WIDTH)  * column + (MARGIN + (WIDTH * 3.5)) + MARGIN * 2 + (WIDTH * 3.5)  // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
-        arcade.draw_text(str(self.opponent.score), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
+        arcade.draw_text(str(self.computer.score), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
 
         # Draw top word boxes
         for row in range(ROW_COUNT - 1):
@@ -361,7 +361,7 @@ class MyGame(arcade.Window):
             arcade.draw_text(tile, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True)
 
         if (not self.players_turn):
-            sorted_words = self.generate_all_plays(self.opponent.tiles)
+            sorted_words = self.generate_all_plays(self.computer.tiles)
             for word in sorted_words[-15:]:
                 print(word)
 
