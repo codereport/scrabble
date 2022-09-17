@@ -75,15 +75,13 @@ COLOR_DOUBLE_LETTER = (189, 215, 214)
 
 ## Enumerators & Helper Classes
 
-
 class Direction(Enum):
     ACROSS = 1
     DOWN = 2
 
-
 # TODO make immutable
 class Position():
-    def __init__(self, row, col, dir):
+    def __init__(self, dir, row, col):
         self.row = row
         self.col = col
         self.dir = dir
@@ -160,7 +158,9 @@ def suffix_tiles(board, dir, row, col):
 def is_first_turn(board):
     return all('.' == c for c in mt.flatten(board))
 
-def word_score(board, dictionary, dir, letters, row, col, first_call):
+def word_score(board, dictionary, letters, pos, first_call):
+    dir, row, col = pos.dir, pos.row, pos.col
+    (row)
     row = 14 - row
     if board[row][col] != '.':
         return Err('cannot start word on existing tile')
@@ -214,7 +214,8 @@ def word_score(board, dictionary, dir, letters, row, col, first_call):
     if first_call:
         opposite_dir = Direction.ACROSS if dir == Direction.DOWN else Direction.DOWN
         for word, (r, c) in perpandicular_words:
-            res = word_score(board, dictionary, opposite_dir, word, 14-r, c, False)
+            pos = Position(opposite_dir, 14-r, c)
+            res = word_score(board, dictionary, word, pos, False)
             if res.is_ok():
                 score += res.value[0]
             else:
@@ -265,14 +266,14 @@ def word_scores_for_row(board, dictionary, row, words):
                 m = min_play_length(board, 14-row, col, Direction.DOWN)
                 for word in words:
                     if len(word) >= m:
-                        pos = Position(row, col, Direction.DOWN)
-                        score = word_score(board, dictionary, Direction.DOWN, word, row, col, True)
+                        pos = Position(Direction.DOWN, row, col)
+                        score = word_score(board, dictionary, word, pos, True)
                         if score.is_ok(): plays.append((score.unwrap(), pos))
             m = min_play_length(board, 14-row, col, Direction.ACROSS)
             for word in words:
                 if len(word) >= m:
-                    pos = Position(row, col, Direction.ACROSS)
-                    score = word_score(board, dictionary, Direction.ACROSS, word, row, col, True)
+                    pos = Position(Direction.ACROSS, row, col)
+                    score = word_score(board, dictionary, word, pos, True)
                     if score.is_ok(): plays.append((score.unwrap(), pos))
     return plays
 
@@ -474,16 +475,14 @@ class MyGame(arcade.Window):
         if len(self.letters_typed):
             start_row, start_col = next(iter(self.letters_typed))
             dir = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
+            pos = Position(dir, start_row, start_col) # start row is super hacky
             score = word_score(self.grid,
                                self.DICTIONARY,
-                               dir,
                                ''.join(self.letters_typed.values()),
-                               start_row, # super hacky
-                               start_col,
+                               pos,
                                True)
-            print(score.value)
             if score.is_ok():
-                return (True, score.value[0], score.value[1], Position(start_row, start_col, dir))
+                return (True, score.value[0], score.value[1], Position(dir, start_row, start_col))
             else:
                 return (False, 0, '', ())
         else:
@@ -494,7 +493,6 @@ class MyGame(arcade.Window):
         scores = Parallel(n_jobs=15, verbose=20)\
             (delayed(word_scores_for_row)\
                 (self.grid, self.DICTIONARY, row, words) for row in range(15))
-        print(len(sorted(mt.flatten(scores))))
         return sorted(mt.flatten(scores))
 
 def main():
