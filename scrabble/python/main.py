@@ -63,9 +63,9 @@ TILE_SCORE = {
 
 TILE_BAG = \
     ['A'] * 9 + ['B'] * 2 + ['C'] * 2 + ['D'] * 4 + ['E'] * 12 + ['F'] * 2 + ['G'] * 3 + \
-    ['H'] * 2 + ['I'] * 9 + ['J'] * 1 + ['K'] * 1  + ['L'] * 4 + ['M'] * 2 + ['N'] * 6 + \
-    ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6  + ['S'] * 4 + ['T'] * 6 + ['U'] * 4 + \
-    ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2  + ['Z'] * 1
+    ['H'] * 2 + ['I'] * 9 + ['J'] * 1 + ['K'] * 1 + ['L'] * 4  + ['M'] * 2 + ['N'] * 6 + \
+    ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6 + ['S'] * 4  + ['T'] * 6 + ['U'] * 4 + \
+    ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2 + ['Z'] * 1
 
 COLOR_NORMAL        = (200, 196, 172)
 COLOR_TRIPLE_WORD   = (241, 108,  77)
@@ -73,11 +73,40 @@ COLOR_TRIPLE_LETTER = ( 58, 156, 184)
 COLOR_DOUBLE_WORD   = (250, 187, 170)
 COLOR_DOUBLE_LETTER = (189, 215, 214)
 
-## Enumerators
+## Enumerators & Helper Classes
+
 
 class Direction(Enum):
     ACROSS = 1
     DOWN = 2
+
+
+# TODO make immutable
+class Position():
+    def __init__(self, row, col, dir):
+        self.row = row
+        self.col = col
+        self.dir = dir
+
+    def __lt__(self, other):
+        return self.row < other.row
+
+    def __eq__(self, other):
+        return self.row == other.row and \
+               self.col == other.col and \
+               self.dir == other.dir
+
+    # def __str__(self):
+    #     return (self.row, self.col, self.dir)
+
+    def __repr__(self):
+        return str((self.row, self.col, self.dir))
+
+class Player():
+    def __init__(self, tiles):
+        self.tiles      = tiles
+        self.score      = 0
+        self.word_ranks = []
 
 ## Free functions
 
@@ -231,25 +260,21 @@ def word_scores_for_row(board, dictionary, row, words):
     if is_first_turn(board) and row != 7: return plays
     for col in range(COLUMN_COUNT):
         if board[14-row][col] == '.':
+            # TODO duplication here
             if not is_first_turn(board):
                 m = min_play_length(board, 14-row, col, Direction.DOWN)
                 for word in words:
                     if len(word) >= m:
+                        pos = Position(row, col, Direction.DOWN)
                         score = word_score(board, dictionary, Direction.DOWN, word, row, col, True)
-                        if score.is_ok(): plays.append(score.unwrap())
+                        if score.is_ok(): plays.append((score.unwrap(), pos))
             m = min_play_length(board, 14-row, col, Direction.ACROSS)
             for word in words:
                 if len(word) >= m:
+                    pos = Position(row, col, Direction.ACROSS)
                     score = word_score(board, dictionary, Direction.ACROSS, word, row, col, True)
-                    if score.is_ok(): plays.append(score.unwrap())
+                    if score.is_ok(): plays.append((score.unwrap(), pos))
     return plays
-
-class Player():
-
-    def __init__(self, tiles):
-        self.tiles      = tiles
-        self.score      = 0
-        self.word_ranks = []
 
 class MyGame(arcade.Window):
     """Main application class"""
@@ -413,7 +438,7 @@ class MyGame(arcade.Window):
             random.shuffle(self.player.tiles)
 
         if key == arcade.key.ENTER:
-            ok, score, word = self.is_playable_and_score_and_word()
+            ok, score, word, pos = self.is_playable_and_score_and_word()
             if ok:
                 self.player.score += score
 
@@ -422,7 +447,8 @@ class MyGame(arcade.Window):
                     print(play)
 
                 rank = 1
-                score_and_word = (score, word)
+                score_and_word = ((score, word), pos)
+                print(score_and_word)
                 while score_and_word != sorted_words[-rank]:
                     rank += 1
 
@@ -441,26 +467,27 @@ class MyGame(arcade.Window):
                 self.players_turn = False
 
     def is_playable(self):
-        ok, _, _ = self.is_playable_and_score_and_word()
+        ok, _, _, _ = self.is_playable_and_score_and_word()
         return ok
 
     def is_playable_and_score_and_word(self):
         if len(self.letters_typed):
             start_row, start_col = next(iter(self.letters_typed))
+            dir = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
             score = word_score(self.grid,
                                self.DICTIONARY,
-                               Direction.ACROSS if self.cursor == 1 else Direction.DOWN,
+                               dir,
                                ''.join(self.letters_typed.values()),
                                start_row, # super hacky
                                start_col,
                                True)
             print(score.value)
             if score.is_ok():
-                return (True, score.value[0], score.value[1])
+                return (True, score.value[0], score.value[1], Position(start_row, start_col, dir))
             else:
-                return (False, 0, '')
+                return (False, 0, '', ())
         else:
-            return (False, 0, '')
+            return (False, 0, '', ())
 
     def generate_all_plays(self, tiles):
         words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(tiles, i)}
