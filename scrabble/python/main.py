@@ -94,9 +94,6 @@ class Position():
                self.col == other.col and \
                self.dir == other.dir
 
-    # def __str__(self):
-    #     return (self.row, self.col, self.dir)
-
     def __repr__(self):
         return str((self.row, self.col, self.dir))
 
@@ -113,12 +110,10 @@ def letter_multiplier(row, col):
     if BOARD[row][col] == TL: return 3
     return 1
 
-
 def word_multiplier(row, col):
     if BOARD[row][col] == DW: return 2
     if BOARD[row][col] == TW: return 3
     return 1
-
 
 def tile_color(row, col):
     if BOARD[row][col] == DL: return COLOR_DOUBLE_LETTER
@@ -393,7 +388,6 @@ class MyGame(arcade.Window):
 
             self.players_turn = True
 
-
     def on_mouse_press(self, x, y, button, modifiers):
         """Called when the user presses a mouse button"""
 
@@ -447,9 +441,9 @@ class MyGame(arcade.Window):
                 for play in sorted_words[-15:]:
                     print(play)
 
+                # TODO name that algorithm
                 rank = 1
                 score_and_word = ((score, word), pos)
-                print(score_and_word)
                 while score_and_word != sorted_words[-rank]:
                     rank += 1
 
@@ -499,7 +493,6 @@ def main():
 
     MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
     arcade.run()
-
 
 if __name__ == "__main__":
     main()
