@@ -95,7 +95,10 @@ class Position():
                self.dir == other.dir
 
     def __repr__(self):
-        return str((self.row, self.col, self.dir))
+        return str(self.tuple())
+
+    def tuple(self):
+        return (self.row, self.col, self.dir)
 
 class Player():
     def __init__(self, tiles):
@@ -383,9 +386,28 @@ class MyGame(arcade.Window):
 
         if (not self.players_turn):
             sorted_words = self.generate_all_plays(self.computer.tiles)
-            for word in sorted_words[-15:]:
-                print(word)
 
+            ((score, word), pos) = sorted_words[-5] # COMPUTER DIFFICULTY
+            row, col, dir        = pos.tuple()
+
+            row = 14-row # lol, wtf was i thinking :s :s
+            print(score, word, pos)
+
+            row_delta = 1 if dir == Direction.DOWN else 0
+            col_delta = 0 if dir == Direction.DOWN else 1
+
+            for letter in word:
+                if self.grid[row][col] == '.':
+                    self.grid[row][col] = letter
+                    self.computer.tiles.remove(letter)
+                col += col_delta
+                row += row_delta
+
+            # this was copied
+            tiles_needed         = 7 - len(self.computer.tiles)
+            self.computer.tiles += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+
+            self.computer.score += score
             self.players_turn = True
 
     def on_mouse_press(self, x, y, button, modifiers):
@@ -453,6 +475,7 @@ class MyGame(arcade.Window):
                 for (row, col), letter in self.letters_typed.items():
                     self.player.tiles.remove(letter)
                     self.grid[14-row][col] = letter
+                # we copy pasted the next two lines
                 tiles_needed         = 7 - len(self.player.tiles)
                 self.player.tiles   += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
                 self.tile_bag_index += tiles_needed
