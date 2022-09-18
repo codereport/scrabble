@@ -468,19 +468,14 @@ class MyGame(arcade.Window):
     def is_playable_and_score_and_word(self):
         if len(self.letters_typed):
             start_row, start_col = next(iter(self.letters_typed))
-            dir = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
-            pos = Position(dir, start_row, start_col) # start row is super hacky
-            score = word_score(self.grid,
-                               self.DICTIONARY,
-                               ''.join(self.letters_typed.values()),
-                               pos,
-                               True)
+            dir     = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
+            pos     = Position(dir, start_row, start_col) # start row is super hacky
+            letters = ''.join(self.letters_typed.values())
+            score   = word_score(self.grid, self.DICTIONARY, letters, pos, True)
+            print(score)
             if score.is_ok():
                 return (True, score.value[0], score.value[1], Position(dir, start_row, start_col))
-            else:
-                return (False, 0, '', ())
-        else:
-            return (False, 0, '', ())
+        return (False, 0, '', ())
 
     def generate_all_plays(self, tiles):
         words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(tiles, i)}
