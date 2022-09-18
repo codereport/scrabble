@@ -304,7 +304,7 @@ class MyGame(arcade.Window):
         # self.curr_player  = self.player
 
         self.DICTIONARY = set()
-        with open('dictionary_scrabble.txt') as f:
+        with open('dictionary_scrabble_6th_ed.txt') as f:
             for line in f:
                 self.DICTIONARY.add(line.strip())
 
