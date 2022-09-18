@@ -399,6 +399,7 @@ class MyGame(arcade.Window):
             for letter in word:
                 if self.grid[row][col] == '.':
                     self.grid[row][col] = letter
+                    print(letter, self.computer.tiles)
                     self.computer.tiles.remove(letter)
                 col += col_delta
                 row += row_delta
@@ -406,6 +407,7 @@ class MyGame(arcade.Window):
             # this was copied
             tiles_needed         = 7 - len(self.computer.tiles)
             self.computer.tiles += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+            self.tile_bag_index += tiles_needed
 
             self.computer.score += score
             self.players_turn = True
@@ -475,7 +477,7 @@ class MyGame(arcade.Window):
                 for (row, col), letter in self.letters_typed.items():
                     self.player.tiles.remove(letter)
                     self.grid[14-row][col] = letter
-                # we copy pasted the next two lines
+                # we copy pasted the next three lines
                 tiles_needed         = 7 - len(self.player.tiles)
                 self.player.tiles   += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
                 self.tile_bag_index += tiles_needed
