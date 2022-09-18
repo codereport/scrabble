@@ -170,11 +170,11 @@ def word_score(board, dictionary, letters, pos, first_call):
             return Err('outside of board')
 
     word_played, score = prefix_tiles(board, dir, row, col)
-    word_mult      = 1
-    row_delta      = 1 if dir == Direction.DOWN else 0
-    col_delta      = 0 if dir == Direction.DOWN else 1
-    crosses        = True if len(word_played) else False
-    valid_start    = False
+    word_mult          = 1
+    row_delta          = 1 if dir == Direction.DOWN else 0
+    col_delta          = 0 if dir == Direction.DOWN else 1
+    crosses            = True if len(word_played) else False
+    valid_start        = False
 
     perpandicular_words = []
 
@@ -396,7 +396,9 @@ class MyGame(arcade.Window):
             row_delta = 1 if dir == Direction.DOWN else 0
             col_delta = 0 if dir == Direction.DOWN else 1
 
-            for letter in word:
+            suffix, _ = suffix_tiles(self.grid, dir, row - row_delta, col - col_delta)
+
+            for letter in word.removeprefix(suffix):
                 if self.grid[row][col] == '.':
                     self.grid[row][col] = letter
                     print(letter, self.computer.tiles)
