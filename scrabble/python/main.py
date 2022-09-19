@@ -396,9 +396,10 @@ class MyGame(arcade.Window):
             row_delta = 1 if dir == Direction.DOWN else 0
             col_delta = 0 if dir == Direction.DOWN else 1
 
-            suffix, _ = suffix_tiles(self.grid, dir, row - row_delta, col - col_delta)
+            prefix, _ = prefix_tiles(self.grid, dir, row, col)
+            print(prefix)
 
-            for letter in word.removeprefix(suffix):
+            for letter in word.removeprefix(prefix):
                 if self.grid[row][col] == '.':
                     self.grid[row][col] = letter
                     print(letter, self.computer.tiles)
