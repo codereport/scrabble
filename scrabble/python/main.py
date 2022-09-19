@@ -188,6 +188,8 @@ def word_score(board, dictionary, letters, pos, first_call):
         word_played = word_played + letter
         score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         word_mult *= word_multiplier(row, col)
+
+        # find perpendicular words that need to be scored
         if dir == Direction.ACROSS:
             if (row + 1 <= 14 and board[row+1][col] != '.') or \
                (row - 1 >= 0  and board[row-1][col] != '.'):
@@ -304,9 +306,9 @@ class MyGame(arcade.Window):
         # self.curr_player  = self.player
 
         self.DICTIONARY = set()
-        with open('dictionary_scrabble_6th_ed.txt') as f:
+        with open('../dictionary/nwl_2020.txt') as f:
             for line in f:
-                self.DICTIONARY.add(line.strip())
+                self.DICTIONARY.add(line.strip().split()[0])
 
         self.letters_typed = {}
 
@@ -414,6 +416,8 @@ class MyGame(arcade.Window):
 
             self.computer.score += score
             self.players_turn = True
+
+            print(self.player.score, self.computer.score)
 
     def on_mouse_press(self, x, y, button, modifiers):
         """Called when the user presses a mouse button"""
