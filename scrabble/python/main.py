@@ -10,9 +10,10 @@ import itertools      as it  # permutations
 import more_itertools as mt  # flatten
 import numpy          as np  # transpose
 
-from result import Ok, Err
-from enum   import Enum
-from joblib import Parallel, delayed
+from result      import Ok, Err
+from enum        import Enum
+from joblib      import Parallel, delayed
+from collections import Counter
 
 ## Constants
 
@@ -451,7 +452,8 @@ class MyGame(arcade.Window):
 
         if str(chr(key)).isalpha():
             letter = chr(key - 32)
-            if letter in self.player.tiles:
+            letters_remaining = Counter(self.player.tiles) - Counter(self.letters_typed.values())
+            if letter in letters_remaining:
                 self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
                 if self.cursor == 1: self.cursor_x += 1
                 if self.cursor == 2: self.cursor_y -= 1
