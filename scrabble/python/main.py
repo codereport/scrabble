@@ -68,6 +68,8 @@ TILE_BAG = \
     ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6 + ['S'] * 4  + ['T'] * 6 + ['U'] * 4 + \
     ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2 + ['Z'] * 1
 
+ARROW_KEYS = [arcade.key.LEFT, arcade.key.RIGHT, arcade.key.UP, arcade.key.DOWN]
+
 COLOR_NORMAL        = (200, 196, 172)
 COLOR_TRIPLE_WORD   = (241, 108,  77)
 COLOR_TRIPLE_LETTER = ( 58, 156, 184)
@@ -293,8 +295,8 @@ class MyGame(arcade.Window):
 
         # Cursor for typings
         self.cursor   = 0  # 0 = off, 1 = across, 2 = down
-        self.cursor_x = 0
-        self.cursor_y = 0
+        self.cursor_x = 7
+        self.cursor_y = 7
 
         # Setup game
         random.shuffle(TILE_BAG)
@@ -433,7 +435,6 @@ class MyGame(arcade.Window):
             self.player_plays = self.generate_all_plays(self.player.tiles)
             print("Done generating plays")
 
-
     def on_mouse_press(self, x, y, button, modifiers):
         """Called when the user presses a mouse button"""
 
@@ -449,6 +450,37 @@ class MyGame(arcade.Window):
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key"""
+
+        if key in ARROW_KEYS:
+            if self.cursor == 0:
+                self.cursor = 1
+            else:
+                if key in [arcade.key.LEFT, arcade.key.RIGHT]:
+                    self.cursor = 1
+                else:
+                    self.cursor = 2
+                if modifiers == arcade.key.MOD_CTRL:
+                    if key == arcade.key.LEFT:
+                        while self.cursor_x >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                            self.cursor_x -= 1
+                        self.cursor_x += 1
+                    if key == arcade.key.RIGHT:
+                        while self.cursor_x <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                            self.cursor_x += 1
+                        self.cursor_x -= 1
+                    if key == arcade.key.DOWN:
+                        while self.cursor_y >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                            self.cursor_y -= 1
+                        self.cursor_y += 1
+                    if key == arcade.key.UP:
+                        while self.cursor_y <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                            self.cursor_y += 1
+                        self.cursor_y -= 1
+                else:
+                    if key == arcade.key.LEFT:  self.cursor_x = max( 0, self.cursor_x - 1)
+                    if key == arcade.key.RIGHT: self.cursor_x = min(14, self.cursor_x + 1)
+                    if key == arcade.key.UP:    self.cursor_y = min(14, self.cursor_y + 1)
+                    if key == arcade.key.DOWN:  self.cursor_y = max( 0, self.cursor_y - 1)
 
         if str(chr(key)).isalpha():
             letter = chr(key - 32)
@@ -473,7 +505,6 @@ class MyGame(arcade.Window):
                             self.player_words_found.add(rank)
                     except:
                         print("failure: score_word_lookup")
-
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
@@ -521,7 +552,6 @@ class MyGame(arcade.Window):
                 self.player_plays = []
                 self.player_words_found.clear()
                 self.players_turn = False
-
 
     def is_playable(self):
         ok, _, _, _ = self.is_playable_and_score_and_word()
