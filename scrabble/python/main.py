@@ -302,8 +302,9 @@ class MyGame(arcade.Window):
         self.player   = Player(TILE_BAG[0: 7])
         self.computer = Player(TILE_BAG[7:14])
 
-        self.players_turn = True
-        # self.curr_player  = self.player
+        self.players_turn       = True
+        self.player_plays       = []
+        self.player_words_found = set() # by rank
 
         self.DICTIONARY = set()
         with open('../dictionary/nwl_2020.txt') as f:
@@ -363,13 +364,19 @@ class MyGame(arcade.Window):
 
         # Draw top word boxes
         for row in range(ROW_COUNT - 1):
-            render_row = 14 - row
+            render_row = 14 - row # and place
             column = 15
             color = arcade.color.LIGHT_GRAY
             TOP_WORD_BOX_WIDTH = (MARGIN // 2 + (WIDTH * 3.5)) * 2
             x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
             y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
+            if render_row in self.player_words_found:
+                color = arcade.color.DARK_PASTEL_GREEN
+                arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
+                (score, word), _ = self.player_plays[-render_row]
+                display = str(render_row) + ": " + word + " (" + str(score) + ")"
+                arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
 
         # Draw tile rack
         tiles_left = list(self.letters_typed.values())
@@ -386,6 +393,7 @@ class MyGame(arcade.Window):
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
             arcade.draw_text(tile, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True)
 
+        # COMPUTER LOGIC
         if (not self.players_turn):
             sorted_words = self.generate_all_plays(self.computer.tiles)
 
@@ -419,6 +427,12 @@ class MyGame(arcade.Window):
 
             print(self.player.score, self.computer.score)
 
+        # PLAYER WORD SOLVER
+        if (self.players_turn and not self.player_plays):
+            self.player_plays = self.generate_all_plays(self.player.tiles)
+            print("Done generating plays")
+
+
     def on_mouse_press(self, x, y, button, modifiers):
         """Called when the user presses a mouse button"""
 
@@ -446,6 +460,18 @@ class MyGame(arcade.Window):
                       self.grid[14-self.cursor_y][self.cursor_x] != '.':
                     if self.cursor == 1: self.cursor_x += 1
                     if self.cursor == 2: self.cursor_y -= 1
+                ok, score, word, pos = self.is_playable_and_score_and_word()
+                if ok and len(word) > 2:
+                    rank = 1
+                    score_and_word = ((score, word), pos)
+                    try:
+                        while score_and_word != self.player_plays[-rank]:
+                            rank += 1
+                        if rank < 15:
+                            self.player_words_found.add(rank)
+                    except:
+                        print("failure: score_word_lookup")
+
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
@@ -468,14 +494,13 @@ class MyGame(arcade.Window):
             if ok:
                 self.player.score += score
 
-                sorted_words = self.generate_all_plays(self.player.tiles)
-                for play in sorted_words[-15:]:
+                for play in self.player_plays[-20:]:
                     print(play)
 
                 # TODO name that algorithm
                 rank = 1
                 score_and_word = ((score, word), pos)
-                while score_and_word != sorted_words[-rank]:
+                while score_and_word != self.player_plays[-rank]:
                     rank += 1
 
                 self.player.word_ranks.append(rank)
@@ -490,8 +515,11 @@ class MyGame(arcade.Window):
                 self.tile_bag_index += tiles_needed
                 self.letters_typed.clear()
                 self.cursor = 0
-            
+
+                self.player_plays = []
+                self.player_words_found.clear()
                 self.players_turn = False
+
 
     def is_playable(self):
         ok, _, _, _ = self.is_playable_and_score_and_word()
