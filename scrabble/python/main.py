@@ -311,11 +311,15 @@ class MyGame(arcade.Window):
         self.player_words_found = set() # by rank
 
         self.DICTIONARY = set()
+        self.DEFINITIONS = dict()
         with open('../dictionary/nwl_2020.txt') as f:
             for line in f:
-                self.DICTIONARY.add(line.strip().split()[0])
+                words = line.strip().split()
+                self.DICTIONARY.add(words[0])
+                self.DEFINITIONS[words[0]] = ' '.join(words[1:])
 
         self.letters_typed = {}
+        self.definition = ''
 
     def on_draw(self):
         """Render the screen"""
@@ -396,11 +400,17 @@ class MyGame(arcade.Window):
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
             arcade.draw_text(tile, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True)
 
+        # Draw word definition
+
+        x = 12 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
+        y = 50
+        arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9)
+
         # COMPUTER LOGIC
         if (not self.players_turn and not self.pause_for_analysis):
             sorted_words = self.generate_all_plays(self.computer.tiles)
 
-            ((score, word), pos) = sorted_words[-5] # COMPUTER DIFFICULTY
+            ((score, word), pos) = sorted_words[-4] # COMPUTER DIFFICULTY
             row, col, dir        = pos.tuple()
 
             row = 14-row # lol, wtf was i thinking :s :s
@@ -501,6 +511,7 @@ class MyGame(arcade.Window):
                             rank += 1
                         if rank < 15:
                             self.player_words_found.add(rank)
+                        self.definition = self.DEFINITIONS[word]
                     except:
                         print("failure: score_word_lookup")
 
