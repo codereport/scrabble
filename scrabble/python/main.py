@@ -217,8 +217,8 @@ def word_score(board, dictionary, letters, pos, first_call):
     if first_call:
         opposite_dir = Direction.ACROSS if dir == Direction.DOWN else Direction.DOWN
         for word, (r, c) in perpandicular_words:
-            pos = Position(opposite_dir, 14-r, c)
-            res = word_score(board, dictionary, word, pos, False)
+            new_pos = Position(opposite_dir, 14-r, c)
+            res = word_score(board, dictionary, word, new_pos, False)
             if res.is_ok():
                 score += res.value[0]
             else:
@@ -234,7 +234,7 @@ def word_score(board, dictionary, letters, pos, first_call):
     if word_played not in dictionary and not (len(word_played) == 1 and len(perpandicular_words)):
         return Err(word_played + ' not in dictionary')
 
-    return Ok((score, word_played))
+    return Ok((score, word_played, pos))
 
 def min_play_length(board, row, col, dir):
     if is_first_turn(board):
@@ -271,13 +271,15 @@ def word_scores_for_row(board, dictionary, row, words):
                     if len(word) >= m:
                         pos = Position(Direction.DOWN, row, col)
                         score = word_score(board, dictionary, word, pos, True)
-                        if score.is_ok(): plays.append((score.unwrap(), pos))
+                        if score.is_ok():
+                            plays.append(score.unwrap())
             m = min_play_length(board, 14-row, col, Direction.ACROSS)
             for word in words:
                 if len(word) >= m:
                     pos = Position(Direction.ACROSS, row, col)
                     score = word_score(board, dictionary, word, pos, True)
-                    if score.is_ok(): plays.append((score.unwrap(), pos))
+                    if score.is_ok():
+                        plays.append(score.unwrap())
     return plays
 
 class MyGame(arcade.Window):
@@ -381,7 +383,7 @@ class MyGame(arcade.Window):
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
             if render_row in self.player_words_found or self.pause_for_analysis:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
-                (score, word), _ = self.player_plays[-render_row]
+                score, word, _ = self.player_plays[-render_row]
                 display = str(render_row) + ": " + word + " (" + str(score) + ")"
                 arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
 
@@ -410,8 +412,8 @@ class MyGame(arcade.Window):
         if (not self.players_turn and not self.pause_for_analysis):
             sorted_words = self.generate_all_plays(self.computer.tiles)
 
-            ((score, word), pos) = sorted_words[-4] # COMPUTER DIFFICULTY
-            row, col, dir        = pos.tuple()
+            score, word, pos = sorted_words[-4] # COMPUTER DIFFICULTY
+            row, col, dir    = pos.tuple()
 
             row = 14-row # lol, wtf was i thinking :s :s
             print(score, word, pos)
@@ -502,12 +504,12 @@ class MyGame(arcade.Window):
                       self.grid[14-self.cursor_y][self.cursor_x] != '.':
                     if self.cursor == 1: self.cursor_x += 1
                     if self.cursor == 2: self.cursor_y -= 1
-                ok, score, word, pos = self.is_playable_and_score_and_word()
-                if ok and len(word) > 2:
-                    rank = 1
-                    score_and_word = ((score, word), pos)
+                word_info = self.is_playable_and_score_and_word()
+                print(word_info)
+                if word_info.is_ok():
                     try:
-                        while score_and_word != self.player_plays[-rank]:
+                        rank = 1
+                        while word_info.unwrap() != self.player_plays[-rank]:
                             rank += 1
                         if rank < 15:
                             self.player_words_found.add(rank)
@@ -537,17 +539,17 @@ class MyGame(arcade.Window):
                 self.player_plays = []
                 self.player_words_found.clear()
             else:
-                ok, score, word, pos = self.is_playable_and_score_and_word()
-                if ok:
+                word_info = self.is_playable_and_score_and_word()
+                if word_info.is_ok():
+                    score, word, _ = word_info.unwrap()
                     self.player.score += score
 
-                    for play in self.player_plays[-20:]:
+                    for play in self.player_plays[-14:]:
                         print(play)
 
                     # TODO name that algorithm
                     rank = 1
-                    score_and_word = ((score, word), pos)
-                    while score_and_word != self.player_plays[-rank]:
+                    while word_info.unwrap() != self.player_plays[-rank]:
                         rank += 1
 
                     self.player.word_ranks.append(rank)
@@ -567,8 +569,7 @@ class MyGame(arcade.Window):
                     self.pause_for_analysis = True
 
     def is_playable(self):
-        ok, _, _, _ = self.is_playable_and_score_and_word()
-        return ok
+        return self.is_playable_and_score_and_word().is_ok()
 
     def is_playable_and_score_and_word(self):
         if len(self.letters_typed):
@@ -576,11 +577,8 @@ class MyGame(arcade.Window):
             dir     = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
             pos     = Position(dir, start_row, start_col) # start row is super hacky
             letters = ''.join(self.letters_typed.values())
-            score   = word_score(self.grid, self.DICTIONARY, letters, pos, True)
-            print(score)
-            if score.is_ok():
-                return (True, score.value[0], score.value[1], Position(dir, start_row, start_col))
-        return (False, 0, '', ())
+            return word_score(self.grid, self.DICTIONARY, letters, pos, True)
+        return Err('no letters typed')
 
     def generate_all_plays(self, tiles):
         words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(tiles, i)}
