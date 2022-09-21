@@ -465,11 +465,11 @@ class MyGame(arcade.Window):
             if self.cursor == 0:
                 self.cursor = 1
             else:
-                if key in [arcade.key.LEFT, arcade.key.RIGHT]:
-                    self.cursor = 1
-                else:
-                    self.cursor = 2
                 if modifiers == arcade.key.MOD_CTRL:
+                    if key in [arcade.key.LEFT, arcade.key.RIGHT]:
+                        self.cursor = 1
+                    else:
+                        self.cursor = 2
                     if key == arcade.key.LEFT:
                         while self.cursor_x >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
                             self.cursor_x -= 1
@@ -487,10 +487,15 @@ class MyGame(arcade.Window):
                             self.cursor_y += 1
                         self.cursor_y -= 1
                 else:
-                    if key == arcade.key.LEFT:  self.cursor_x = max( 0, self.cursor_x - 1)
-                    if key == arcade.key.RIGHT: self.cursor_x = min(14, self.cursor_x + 1)
-                    if key == arcade.key.UP:    self.cursor_y = min(14, self.cursor_y + 1)
-                    if key == arcade.key.DOWN:  self.cursor_y = max( 0, self.cursor_y - 1)
+                    if key in [arcade.key.LEFT, arcade.key.RIGHT] and self.cursor == 2:
+                        self.cursor = 1
+                    elif key in [arcade.key.UP, arcade.key.DOWN] and self.cursor == 1:
+                        self.cursor = 2
+                    else:
+                        if key == arcade.key.LEFT:  self.cursor_x = max( 0, self.cursor_x - 1)
+                        if key == arcade.key.RIGHT: self.cursor_x = min(14, self.cursor_x + 1)
+                        if key == arcade.key.UP:    self.cursor_y = min(14, self.cursor_y + 1)
+                        if key == arcade.key.DOWN:  self.cursor_y = max( 0, self.cursor_y - 1)
 
         if str(chr(key)).isalpha():
             letter = chr(key - 32)
