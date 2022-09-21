@@ -305,6 +305,7 @@ class MyGame(arcade.Window):
         self.player   = Player(TILE_BAG[0: 7])
         self.computer = Player(TILE_BAG[7:14])
 
+        self.pause_for_analysis = False
         self.players_turn       = True
         self.player_plays       = []
         self.player_words_found = set() # by rank
@@ -369,13 +370,12 @@ class MyGame(arcade.Window):
         for row in range(ROW_COUNT - 1):
             render_row = 14 - row # and place
             column = 15
-            color = arcade.color.LIGHT_GRAY
+            color = arcade.color.DARK_PASTEL_GREEN if render_row in self.player_words_found else arcade.color.LIGHT_GRAY
             TOP_WORD_BOX_WIDTH = (MARGIN // 2 + (WIDTH * 3.5)) * 2
             x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
             y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
-            if render_row in self.player_words_found:
-                color = arcade.color.DARK_PASTEL_GREEN
+            if render_row in self.player_words_found or self.pause_for_analysis:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
                 (score, word), _ = self.player_plays[-render_row]
                 display = str(render_row) + ": " + word + " (" + str(score) + ")"
@@ -397,7 +397,7 @@ class MyGame(arcade.Window):
             arcade.draw_text(tile, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True)
 
         # COMPUTER LOGIC
-        if (not self.players_turn):
+        if (not self.players_turn and not self.pause_for_analysis):
             sorted_words = self.generate_all_plays(self.computer.tiles)
 
             ((score, word), pos) = sorted_words[-5] # COMPUTER DIFFICULTY
@@ -410,12 +410,10 @@ class MyGame(arcade.Window):
             col_delta = 0 if dir == Direction.DOWN else 1
 
             prefix, _ = prefix_tiles(self.grid, dir, row, col)
-            print(prefix)
 
             for letter in word.removeprefix(prefix):
                 if self.grid[row][col] == '.':
                     self.grid[row][col] = letter
-                    print(letter, self.computer.tiles)
                     self.computer.tiles.remove(letter)
                 col += col_delta
                 row += row_delta
@@ -523,35 +521,39 @@ class MyGame(arcade.Window):
             random.shuffle(self.player.tiles)
 
         if key == arcade.key.ENTER:
-            ok, score, word, pos = self.is_playable_and_score_and_word()
-            if ok:
-                self.player.score += score
-
-                for play in self.player_plays[-20:]:
-                    print(play)
-
-                # TODO name that algorithm
-                rank = 1
-                score_and_word = ((score, word), pos)
-                while score_and_word != self.player_plays[-rank]:
-                    rank += 1
-
-                self.player.word_ranks.append(rank)
-                print(('{:.1f}'.format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
-
-                for (row, col), letter in self.letters_typed.items():
-                    self.player.tiles.remove(letter)
-                    self.grid[14-row][col] = letter
-                # we copy pasted the next three lines
-                tiles_needed         = 7 - len(self.player.tiles)
-                self.player.tiles   += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
-                self.tile_bag_index += tiles_needed
-                self.letters_typed.clear()
-                self.cursor = 0
-
+            if self.pause_for_analysis:
+                self.pause_for_analysis = False
                 self.player_plays = []
                 self.player_words_found.clear()
-                self.players_turn = False
+            else:
+                ok, score, word, pos = self.is_playable_and_score_and_word()
+                if ok:
+                    self.player.score += score
+
+                    for play in self.player_plays[-20:]:
+                        print(play)
+
+                    # TODO name that algorithm
+                    rank = 1
+                    score_and_word = ((score, word), pos)
+                    while score_and_word != self.player_plays[-rank]:
+                        rank += 1
+
+                    self.player.word_ranks.append(rank)
+                    print(('{:.1f}'.format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
+
+                    for (row, col), letter in self.letters_typed.items():
+                        self.player.tiles.remove(letter)
+                        self.grid[14-row][col] = letter
+                    # we copy pasted the next three lines
+                    tiles_needed         = 7 - len(self.player.tiles)
+                    self.player.tiles   += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+                    self.tile_bag_index += tiles_needed
+                    self.letters_typed.clear()
+                    self.cursor = 0
+
+                    self.players_turn = False
+                    self.pause_for_analysis = True
 
     def is_playable(self):
         ok, _, _, _ = self.is_playable_and_score_and_word()
