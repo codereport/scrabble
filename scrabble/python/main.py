@@ -518,7 +518,7 @@ class MyGame(arcade.Window):
                             rank += 1
                         if rank < 15:
                             self.player_words_found.add(rank)
-                        self.definition = self.DEFINITIONS[word]
+                        self.definition = self.DEFINITIONS[word_info.unwrap()[1]]
                     except:
                         print("failure: score_word_lookup")
 
