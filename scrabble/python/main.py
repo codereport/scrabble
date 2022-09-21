@@ -513,6 +513,7 @@ class MyGame(arcade.Window):
                 print(word_info)
                 if word_info.is_ok():
                     try:
+                        # TODO name that algorithm
                         rank = 1
                         while word_info.unwrap() != self.player_plays[-rank]:
                             rank += 1
@@ -552,12 +553,7 @@ class MyGame(arcade.Window):
                     for play in self.player_plays[-14:]:
                         print(play)
 
-                    # TODO name that algorithm
-                    rank = 1
-                    while word_info.unwrap() != self.player_plays[-rank]:
-                        rank += 1
-
-                    self.player.word_ranks.append(rank)
+                    self.player.word_ranks.append(min(self.player_words_found))
                     print(('{:.1f}'.format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
 
                     for (row, col), letter in self.letters_typed.items():
