@@ -436,6 +436,7 @@ class MyGame(arcade.Window):
             self.tile_bag_index += tiles_needed
 
             self.computer.score += score
+            self.definition   = self.DEFINITIONS[word]
             self.players_turn = True
 
             print(self.player.score, self.computer.score)
@@ -517,8 +518,7 @@ class MyGame(arcade.Window):
                         rank = 1
                         while word_info.unwrap() != self.player_plays[-rank]:
                             rank += 1
-                        if rank < 15:
-                            self.player_words_found.add(rank)
+                        self.player_words_found.add(rank)
                         self.definition = self.DEFINITIONS[word_info.unwrap()[1]]
                     except:
                         print("failure: score_word_lookup")
