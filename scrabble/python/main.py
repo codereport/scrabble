@@ -307,10 +307,11 @@ class MyGame(arcade.Window):
         self.player   = Player(TILE_BAG[0: 7])
         self.computer = Player(TILE_BAG[7:14])
 
-        self.pause_for_analysis = False
-        self.players_turn       = True
-        self.player_plays       = []
-        self.player_words_found = set() # by rank
+        self.pause_for_analysis  = False
+        self.players_turn        = True
+        self.player_plays        = []
+        self.player_words_found  = set() # by rank
+        self.player_scores_found = set()
 
         self.DICTIONARY = set()
         self.DEFINITIONS = dict()
@@ -375,15 +376,22 @@ class MyGame(arcade.Window):
         # Draw top word boxes
         for row in range(ROW_COUNT - 1):
             render_row = 14 - row # and place
+            if len(self.player_plays) == 0 or render_row + 1 > len(self.player_plays):
+                continue
             column = 15
-            color = arcade.color.DARK_PASTEL_GREEN if render_row in self.player_words_found else arcade.color.LIGHT_GRAY
+            score, word, _ = self.player_plays[-render_row]
+            if render_row in self.player_words_found:
+                color = arcade.color.DARK_PASTEL_GREEN
+            elif score in self.player_scores_found:
+                color = arcade.color.YELLOW
+            else:
+                color = arcade.color.LIGHT_GRAY
             TOP_WORD_BOX_WIDTH = (MARGIN // 2 + (WIDTH * 3.5)) * 2
             x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
             y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
             if render_row in self.player_words_found or self.pause_for_analysis:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
-                score, word, _ = self.player_plays[-render_row]
                 display = str(render_row) + ": " + word + " (" + str(score) + ")"
                 arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
 
@@ -519,6 +527,7 @@ class MyGame(arcade.Window):
                         while word_info.unwrap() != self.player_plays[-rank]:
                             rank += 1
                         self.player_words_found.add(rank)
+                        self.player_scores_found.add(word_info.unwrap()[0])
                         self.definition = self.DEFINITIONS[word_info.unwrap()[1]]
                     except:
                         print("failure: score_word_lookup")
@@ -543,6 +552,7 @@ class MyGame(arcade.Window):
             if self.pause_for_analysis:
                 self.pause_for_analysis = False
                 self.player_plays = []
+                self.player_scores_found.clear()
                 self.player_words_found.clear()
             else:
                 word_info = self.is_playable_and_score_and_word()
