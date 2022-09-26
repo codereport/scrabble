@@ -420,7 +420,7 @@ class MyGame(arcade.Window):
         if (not self.players_turn and not self.pause_for_analysis):
             sorted_words = self.generate_all_plays(self.computer.tiles)
 
-            score, word, pos = sorted_words[-4] # COMPUTER DIFFICULTY
+            score, word, pos = sorted_words[-3] # COMPUTER DIFFICULTY
             row, col, dir    = pos.tuple()
 
             row = 14-row # lol, wtf was i thinking :s :s
