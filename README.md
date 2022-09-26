@@ -1,4 +1,4 @@
-![image](https://user-images.githubusercontent.com/36027403/191161069-fc867ecb-9569-48c9-ad67-138de4c1e6d4.png)
+![image](https://user-images.githubusercontent.com/36027403/192036945-c6d2950a-a126-483a-8457-6fd23b72307e.png)
 
 ### Scrabble Dictionaries
 
