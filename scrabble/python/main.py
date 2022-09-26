@@ -510,14 +510,21 @@ class MyGame(arcade.Window):
             letter = chr(key - 32)
             letters_remaining = Counter(self.player.tiles) - Counter(self.letters_typed.values())
             if letter in letters_remaining:
-                self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
-                if self.cursor == 1: self.cursor_x += 1
-                if self.cursor == 2: self.cursor_y -= 1
-                while self.cursor_y > 0  and \
-                      self.cursor_x < 14 and \
+                while self.cursor_y >= 0  and \
+                      self.cursor_x <= 14 and \
                       self.grid[14-self.cursor_y][self.cursor_x] != '.':
-                    if self.cursor == 1: self.cursor_x += 1
-                    if self.cursor == 2: self.cursor_y -= 1
+                    if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
+                    if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
+
+                self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
+                if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
+                if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
+
+                while self.cursor_y >= 0  and \
+                      self.cursor_x <= 14 and \
+                      self.grid[14-self.cursor_y][self.cursor_x] != '.':
+                    if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
+                    if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
                 word_info = self.is_playable_and_score_and_word()
                 print(word_info)
                 if word_info.is_ok():
@@ -534,7 +541,6 @@ class MyGame(arcade.Window):
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
-            self.cursor = 0
 
         if key == arcade.key.BACKSPACE:
             if len(self.letters_typed):
@@ -557,7 +563,7 @@ class MyGame(arcade.Window):
             else:
                 word_info = self.is_playable_and_score_and_word()
                 if word_info.is_ok():
-                    score, word, _ = word_info.unwrap()
+                    score, _, _ = word_info.unwrap()
                     self.player.score += score
 
                     for play in self.player_plays[-14:]:
@@ -574,8 +580,6 @@ class MyGame(arcade.Window):
                     self.player.tiles   += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
                     self.tile_bag_index += tiles_needed
                     self.letters_typed.clear()
-                    self.cursor = 0
-
                     self.players_turn = False
                     self.pause_for_analysis = True
 
