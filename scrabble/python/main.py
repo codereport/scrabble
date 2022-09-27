@@ -6,6 +6,7 @@ Started from https://arcade.academy/examples/array_backed_grid.html#array-backed
 
 import arcade
 import random                # shuffle
+import copy                  # deepcopy
 import itertools      as it  # permutations
 import more_itertools as mt  # flatten
 import numpy          as np  # transpose
@@ -291,7 +292,9 @@ class MyGame(arcade.Window):
         super().__init__(width, height, title)
 
         # Create a 2 dimensional array. A two dimensional array is simply a list of lists.
-        self.grid = [['.'] * 15 for i in range(15)]
+        self.grid        = [['.'] * 15 for i in range(15)]
+        self.grid_backup = copy.deepcopy(self.grid)
+        self.last_grid   = copy.deepcopy(self.grid)
 
         arcade.set_background_color(arcade.color.BLACK)
 
@@ -307,11 +310,12 @@ class MyGame(arcade.Window):
         self.player   = Player(TILE_BAG[0: 7])
         self.computer = Player(TILE_BAG[7:14])
 
-        self.pause_for_analysis  = False
-        self.players_turn        = True
-        self.player_plays        = []
-        self.player_words_found  = set() # by rank
-        self.player_scores_found = set()
+        self.pause_for_analysis      = False
+        self.pause_for_analysis_rank = None
+        self.players_turn            = True
+        self.player_plays            = []
+        self.player_words_found      = set() # by rank
+        self.player_scores_found     = set()
 
         self.DICTIONARY = set()
         self.DEFINITIONS = dict()
@@ -380,7 +384,9 @@ class MyGame(arcade.Window):
                 continue
             column = 15
             score, word, _ = self.player_plays[-render_row]
-            if render_row in self.player_words_found:
+            if self.pause_for_analysis and self.pause_for_analysis_rank == render_row:
+                color = arcade.color.HOT_PINK
+            elif render_row in self.player_words_found:
                 color = arcade.color.DARK_PASTEL_GREEN
             elif score in self.player_scores_found:
                 color = arcade.color.YELLOW
@@ -420,32 +426,19 @@ class MyGame(arcade.Window):
         if (not self.players_turn and not self.pause_for_analysis):
             sorted_words = self.generate_all_plays(self.computer.tiles)
 
-            score, word, pos = sorted_words[-3] # COMPUTER DIFFICULTY
-            row, col, dir    = pos.tuple()
+            word_info = sorted_words[-3] # COMPUTER DIFFICULTY
 
-            row = 14-row # lol, wtf was i thinking :s :s
-            print(score, word, pos)
-
-            row_delta = 1 if dir == Direction.DOWN else 0
-            col_delta = 0 if dir == Direction.DOWN else 1
-
-            prefix, _ = prefix_tiles(self.grid, dir, row, col)
-
-            for letter in word.removeprefix(prefix):
-                if self.grid[row][col] == '.':
-                    self.grid[row][col] = letter
-                    self.computer.tiles.remove(letter)
-                col += col_delta
-                row += row_delta
+            self.computer.tiles = self.play_word(word_info, self.computer.tiles)
 
             # this was copied
             tiles_needed         = 7 - len(self.computer.tiles)
             self.computer.tiles += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
             self.tile_bag_index += tiles_needed
 
-            self.computer.score += score
-            self.definition   = self.DEFINITIONS[word]
-            self.players_turn = True
+            self.computer.score += word_info[0]
+            self.players_turn    = True
+
+            self.last_grid = copy.deepcopy(self.grid)
 
             print(self.player.score, self.computer.score)
 
@@ -453,6 +446,30 @@ class MyGame(arcade.Window):
         if (self.players_turn and not self.player_plays):
             self.player_plays = self.generate_all_plays(self.player.tiles)
             print("Done generating plays")
+
+    def play_word(self, word_info, tiles):
+        score, word, pos = word_info
+        row, col, dir    = pos.tuple()
+
+        row = 14 - row # lol, wtf was i thinking :s :s
+        print(score, word, pos)
+
+        row_delta = 1 if dir == Direction.DOWN else 0
+        col_delta = 0 if dir == Direction.DOWN else 1
+
+        prefix, _ = prefix_tiles(self.grid, dir, row, col)
+
+        remaining_tiles = tiles
+        for letter in word.removeprefix(prefix):
+            if self.grid[row][col] == '.':
+                self.grid[row][col] = letter
+                if remaining_tiles:
+                    remaining_tiles.remove(letter)
+            col += col_delta
+            row += row_delta
+
+        self.definition = self.DEFINITIONS[word]
+        return remaining_tiles
 
     def on_mouse_press(self, x, y, button, modifiers):
         """Called when the user presses a mouse button"""
@@ -471,40 +488,52 @@ class MyGame(arcade.Window):
         """Called when the user releases a key"""
 
         if key in ARROW_KEYS:
-            if self.cursor == 0:
-                self.cursor = 1
+            if self.pause_for_analysis:
+                if self.pause_for_analysis_rank == None:
+                    self.pause_for_analysis_rank = 1
+                elif key == arcade.key.UP:
+                    self.pause_for_analysis_rank = max(1, self.pause_for_analysis_rank - 1)
+                elif key == arcade.key.DOWN:
+                    self.pause_for_analysis_rank = min(14, self.pause_for_analysis_rank + 1)
+
+                self.grid = copy.deepcopy(self.last_grid)
+                self.play_word(self.player_plays[-self.pause_for_analysis_rank], None)
+
             else:
-                if modifiers == arcade.key.MOD_CTRL:
-                    if key in [arcade.key.LEFT, arcade.key.RIGHT]:
-                        self.cursor = 1
-                    else:
-                        self.cursor = 2
-                    if key == arcade.key.LEFT:
-                        while self.cursor_x >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                            self.cursor_x -= 1
-                        self.cursor_x += 1
-                    if key == arcade.key.RIGHT:
-                        while self.cursor_x <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                            self.cursor_x += 1
-                        self.cursor_x -= 1
-                    if key == arcade.key.DOWN:
-                        while self.cursor_y >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                            self.cursor_y -= 1
-                        self.cursor_y += 1
-                    if key == arcade.key.UP:
-                        while self.cursor_y <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                            self.cursor_y += 1
-                        self.cursor_y -= 1
+                if self.cursor == 0:
+                    self.cursor = 1
                 else:
-                    if key in [arcade.key.LEFT, arcade.key.RIGHT] and self.cursor == 2:
-                        self.cursor = 1
-                    elif key in [arcade.key.UP, arcade.key.DOWN] and self.cursor == 1:
-                        self.cursor = 2
+                    if modifiers == arcade.key.MOD_CTRL:
+                        if key in [arcade.key.LEFT, arcade.key.RIGHT]:
+                            self.cursor = 1
+                        else:
+                            self.cursor = 2
+                        if key == arcade.key.LEFT:
+                            while self.cursor_x >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                                self.cursor_x -= 1
+                            self.cursor_x += 1
+                        if key == arcade.key.RIGHT:
+                            while self.cursor_x <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                                self.cursor_x += 1
+                            self.cursor_x -= 1
+                        if key == arcade.key.DOWN:
+                            while self.cursor_y >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                                self.cursor_y -= 1
+                            self.cursor_y += 1
+                        if key == arcade.key.UP:
+                            while self.cursor_y <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                                self.cursor_y += 1
+                            self.cursor_y -= 1
                     else:
-                        if key == arcade.key.LEFT:  self.cursor_x = max( 0, self.cursor_x - 1)
-                        if key == arcade.key.RIGHT: self.cursor_x = min(14, self.cursor_x + 1)
-                        if key == arcade.key.UP:    self.cursor_y = min(14, self.cursor_y + 1)
-                        if key == arcade.key.DOWN:  self.cursor_y = max( 0, self.cursor_y - 1)
+                        if key in [arcade.key.LEFT, arcade.key.RIGHT] and self.cursor == 2:
+                            self.cursor = 1
+                        elif key in [arcade.key.UP, arcade.key.DOWN] and self.cursor == 1:
+                            self.cursor = 2
+                        else:
+                            if key == arcade.key.LEFT:  self.cursor_x = max( 0, self.cursor_x - 1)
+                            if key == arcade.key.RIGHT: self.cursor_x = min(14, self.cursor_x + 1)
+                            if key == arcade.key.UP:    self.cursor_y = min(14, self.cursor_y + 1)
+                            if key == arcade.key.DOWN:  self.cursor_y = max( 0, self.cursor_y - 1)
 
         if str(chr(key)).isalpha():
             letter = chr(key - 32)
@@ -557,9 +586,11 @@ class MyGame(arcade.Window):
         if key == arcade.key.ENTER:
             if self.pause_for_analysis:
                 self.pause_for_analysis = False
+                self.pause_for_analysis_rank = None
                 self.player_plays = []
                 self.player_scores_found.clear()
                 self.player_words_found.clear()
+                self.grid = copy.deepcopy(self.grid_backup)
             else:
                 word_info = self.is_playable_and_score_and_word()
                 if word_info.is_ok():
@@ -576,12 +607,14 @@ class MyGame(arcade.Window):
                         self.player.tiles.remove(letter)
                         self.grid[14-row][col] = letter
                     # we copy pasted the next three lines
-                    tiles_needed         = 7 - len(self.player.tiles)
-                    self.player.tiles   += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
-                    self.tile_bag_index += tiles_needed
-                    self.letters_typed.clear()
-                    self.players_turn = False
+                    tiles_needed            = 7 - len(self.player.tiles)
+                    self.player.tiles      += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+                    self.tile_bag_index    += tiles_needed
+                    self.players_turn       = False
                     self.pause_for_analysis = True
+                    self.grid_backup        = copy.deepcopy(self.grid)
+                    self.cursor             = 0
+                    self.letters_typed.clear()
 
     def is_playable(self):
         return self.is_playable_and_score_and_word().is_ok()
