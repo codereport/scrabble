@@ -325,8 +325,9 @@ class MyGame(arcade.Window):
                 self.DICTIONARY.add(words[0])
                 self.DEFINITIONS[words[0]] = ' '.join(words[1:])
 
-        self.letters_typed = {}
-        self.definition = ''
+        self.letters_typed        = {}
+        self.letters_to_highlight = set()
+        self.definition           = ''
 
     def on_draw(self):
         """Render the screen"""
@@ -342,6 +343,8 @@ class MyGame(arcade.Window):
                 color = tile_color(row, column) if self.grid[render_row][column] == '.' else arcade.color.AMETHYST
                 if (row, column) in self.letters_typed:
                     color = played_tile_color
+                elif (row, column) in self.letters_to_highlight:
+                    color = arcade.color.HOT_PINK
 
                 x = (MARGIN + WIDTH)  * column + MARGIN + WIDTH  // 2
                 y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
@@ -462,6 +465,7 @@ class MyGame(arcade.Window):
         remaining_tiles = tiles
         for letter in word.removeprefix(prefix):
             if self.grid[row][col] == '.':
+                self.letters_to_highlight.add((14-row, col))
                 self.grid[row][col] = letter
                 if remaining_tiles:
                     remaining_tiles.remove(letter)
@@ -497,6 +501,7 @@ class MyGame(arcade.Window):
                     self.pause_for_analysis_rank = min(14, self.pause_for_analysis_rank + 1)
 
                 self.grid = copy.deepcopy(self.last_grid)
+                self.letters_to_highlight.clear()
                 self.play_word(self.player_plays[-self.pause_for_analysis_rank], None)
 
             else:
@@ -590,6 +595,7 @@ class MyGame(arcade.Window):
                 self.player_plays = []
                 self.player_scores_found.clear()
                 self.player_words_found.clear()
+                self.letters_to_highlight.clear()
                 self.grid = copy.deepcopy(self.grid_backup)
             else:
                 word_info = self.is_playable_and_score_and_word()
