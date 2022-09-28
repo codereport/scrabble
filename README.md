@@ -11,4 +11,4 @@
 \* Formerly OTCWL <br>
 \*\* Formerly SOWPODS
 
-NWL is a modified / extended version of OSPD and is used by the North American Scrabble Players Association (NASPA). CSW is by international competitions.
+NWL is a modified / extended version of OSPD and is used by the North American Scrabble Players Association (NASPA). CSW is used by international competitions.
