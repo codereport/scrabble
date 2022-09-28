@@ -450,6 +450,16 @@ class MyGame(arcade.Window):
             self.player_plays = self.generate_all_plays(self.player.tiles)
             print("Done generating plays")
 
+    def recursive_definition(self, word, num):
+        definition = self.DEFINITIONS[word.upper()]
+        if definition[0] not in ['<', '{']:
+            return definition
+        redirect_word = definition.split('=')[0][1:]
+        # in case there is infinite recursion, break
+        if num > 10:
+            return definition
+        return definition + ' || ' + self.recursive_definition(redirect_word, num + 1)
+
     def play_word(self, word_info, tiles):
         score, word, pos = word_info
         row, col, dir    = pos.tuple()
@@ -472,7 +482,7 @@ class MyGame(arcade.Window):
             col += col_delta
             row += row_delta
 
-        self.definition = self.DEFINITIONS[word]
+        self.definition = self.recursive_definition(word, 1)
         return remaining_tiles
 
     def on_mouse_press(self, x, y, button, modifiers):
@@ -498,7 +508,7 @@ class MyGame(arcade.Window):
                 elif key == arcade.key.UP:
                     self.pause_for_analysis_rank = max(1, self.pause_for_analysis_rank - 1)
                 elif key == arcade.key.DOWN:
-                    self.pause_for_analysis_rank = min(14, self.pause_for_analysis_rank + 1)
+                    self.pause_for_analysis_rank = self.pause_for_analysis_rank % 14 + 1
 
                 self.grid = copy.deepcopy(self.last_grid)
                 self.letters_to_highlight.clear()
@@ -569,7 +579,7 @@ class MyGame(arcade.Window):
                             rank += 1
                         self.player_words_found.add(rank)
                         self.player_scores_found.add(word_info.unwrap()[0])
-                        self.definition = self.DEFINITIONS[word_info.unwrap()[1]]
+                        self.definition = self.recursive_definition(word_info.unwrap()[1], 1)
                     except:
                         print("failure: score_word_lookup")
 
