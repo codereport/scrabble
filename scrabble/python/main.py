@@ -162,7 +162,6 @@ def is_first_turn(board):
 
 def word_score(board, dictionary, letters, pos, first_call):
     dir, row, col = pos.dir, pos.row, pos.col
-    (row)
     row = 14 - row
     if board[row][col] != '.':
         return Err('cannot start word on existing tile')
@@ -185,10 +184,10 @@ def word_score(board, dictionary, letters, pos, first_call):
     for letter in letters:
         while board[row][col] != '.':
             word_played = word_played + board[row][col]
-            score += TILE_SCORE.get(board[row][col])
-            row += row_delta
-            col += col_delta
-            crosses = True
+            score      += TILE_SCORE.get(board[row][col])
+            row        += row_delta
+            col        += col_delta
+            crosses     = True
         word_played = word_played + letter
         score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         word_mult *= word_multiplier(row, col)
