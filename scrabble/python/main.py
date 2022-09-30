@@ -553,19 +553,31 @@ class MyGame(arcade.Window):
             letter = chr(key - 32)
             letters_remaining = Counter(self.player.tiles) - Counter(self.letters_typed.values())
             if letter in letters_remaining:
+                broke = False
                 while self.cursor_y >= 0  and \
                       self.cursor_x <= 14 and \
                       self.grid[14-self.cursor_y][self.cursor_x] != '.':
+                    if self.cursor == 1 and self.cursor_x == 14:
+                        broke = True
+                        break
+                    if self.cursor == 2 and self.cursor_y == 0:
+                        broke = True
+                        break
                     if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
                     if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
 
-                self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
-                if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
-                if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
+                if not broke:
+                    self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
+                    if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
+                    if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
 
                 while self.cursor_y >= 0  and \
                       self.cursor_x <= 14 and \
                       self.grid[14-self.cursor_y][self.cursor_x] != '.':
+                    if self.cursor == 1 and self.cursor_x == 14:
+                        break
+                    if self.cursor == 2 and self.cursor_y == 0:
+                        break
                     if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
                     if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
                 word_info = self.is_playable_and_score_and_word()
