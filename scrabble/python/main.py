@@ -160,7 +160,7 @@ def suffix_tiles(board, dir, row, col):
 def is_first_turn(board):
     return all('.' == c for c in mt.flatten(board))
 
-def word_score(board, dictionary, letters, pos, first_call):
+def word_score(board, dictionary, letters, pos, first_call, prefixes):
     dir, row, col = pos.dir, pos.row, pos.col
     row = 14 - row
     if board[row][col] != '.':
@@ -182,12 +182,15 @@ def word_score(board, dictionary, letters, pos, first_call):
     perpandicular_words = []
 
     for letter in letters:
+        if word_played not in prefixes: return Err(word_played + ' prefix not in dictionary')
         while board[row][col] != '.':
+            if word_played not in prefixes: return Err(word_played + ' prefix not in dictionary')
             word_played = word_played + board[row][col]
             score      += TILE_SCORE.get(board[row][col])
             row        += row_delta
             col        += col_delta
             crosses     = True
+        if word_played not in prefixes: return Err(word_played + ' prefix not in dictionary')
         word_played = word_played + letter
         score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         word_mult *= word_multiplier(row, col)
@@ -218,7 +221,7 @@ def word_score(board, dictionary, letters, pos, first_call):
         opposite_dir = Direction.ACROSS if dir == Direction.DOWN else Direction.DOWN
         for word, (r, c) in perpandicular_words:
             new_pos = Position(opposite_dir, 14-r, c)
-            res = word_score(board, dictionary, word, new_pos, False)
+            res = word_score(board, dictionary, word, new_pos, False, prefixes)
             if res.is_ok():
                 score += res.value[0]
             else:
@@ -259,7 +262,7 @@ def min_play_length(board, row, col, dir):
                     return i + 1
     return 10
 
-def word_scores_for_row(board, dictionary, row, words):
+def word_scores_for_row(board, dictionary, row, words, prefixes):
     plays = []
     if is_first_turn(board) and row != 7: return plays
     for col in range(COLUMN_COUNT):
@@ -270,14 +273,14 @@ def word_scores_for_row(board, dictionary, row, words):
                 for word in words:
                     if len(word) >= m:
                         pos = Position(Direction.DOWN, row, col)
-                        score = word_score(board, dictionary, word, pos, True)
+                        score = word_score(board, dictionary, word, pos, True, prefixes)
                         if score.is_ok():
                             plays.append(score.unwrap())
             m = min_play_length(board, 14-row, col, Direction.ACROSS)
             for word in words:
                 if len(word) >= m:
                     pos = Position(Direction.ACROSS, row, col)
-                    score = word_score(board, dictionary, word, pos, True)
+                    score = word_score(board, dictionary, word, pos, True, prefixes)
                     if score.is_ok():
                         plays.append(score.unwrap())
     return plays
@@ -323,6 +326,12 @@ class MyGame(arcade.Window):
                 words = line.strip().split()
                 self.DICTIONARY.add(words[0])
                 self.DEFINITIONS[words[0]] = ' '.join(words[1:])
+
+        self.PREFIXES = set()
+        self.PREFIXES.add('')
+        for w in self.DICTIONARY:
+            for i in range(1, len(w)+1):
+                self.PREFIXES.add(w[:i])
 
         self.letters_typed        = {}
         self.letters_to_highlight = set()
@@ -652,14 +661,14 @@ class MyGame(arcade.Window):
             dir     = Direction.ACROSS if self.cursor == 1 else Direction.DOWN
             pos     = Position(dir, start_row, start_col) # start row is super hacky
             letters = ''.join(self.letters_typed.values())
-            return word_score(self.grid, self.DICTIONARY, letters, pos, True)
+            return word_score(self.grid, self.DICTIONARY, letters, pos, True, self.PREFIXES)
         return Err('no letters typed')
 
     def generate_all_plays(self, tiles):
         words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(tiles, i)}
         scores = Parallel(n_jobs=15, verbose=20)\
             (delayed(word_scores_for_row)\
-                (self.grid, self.DICTIONARY, row, words) for row in range(15))
+                (self.grid, self.DICTIONARY, row, words, self.PREFIXES) for row in range(15))
         return sorted(mt.flatten(scores))
 
 def main():
