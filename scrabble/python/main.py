@@ -514,7 +514,7 @@ class MyGame(arcade.Window):
                 if self.pause_for_analysis_rank == None:
                     self.pause_for_analysis_rank = 1
                 elif key == arcade.key.UP:
-                    self.pause_for_analysis_rank = max(1, self.pause_for_analysis_rank - 1)
+                    self.pause_for_analysis_rank = (self.pause_for_analysis_rank + 12) % 14 + 1
                 elif key == arcade.key.DOWN:
                     self.pause_for_analysis_rank = self.pause_for_analysis_rank % 14 + 1
 
