@@ -620,6 +620,8 @@ class MyGame(arcade.Window):
                 self.player_words_found.clear()
                 self.letters_to_highlight.clear()
                 self.grid = copy.deepcopy(self.grid_backup)
+                self.cursor_x = min(14, self.cursor_x)
+                self.cursor_y = max(0, self.cursor_y)
             else:
                 word_info = self.is_playable_and_score_and_word()
                 if word_info.is_ok():
