@@ -106,9 +106,10 @@ class Position():
 
 class Player():
     def __init__(self, tiles):
-        self.tiles      = tiles
-        self.score      = 0
-        self.word_ranks = []
+        self.tiles           = tiles
+        self.score           = 0
+        self.word_ranks      = []
+        self.last_word_score = 0
 
 ## Free functions
 
@@ -377,7 +378,8 @@ class MyGame(arcade.Window):
         x = (MARGIN + WIDTH)  * column + MARGIN * 2 + (WIDTH * 3.5)  // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
-        arcade.draw_text(str(self.player.score), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
+        score = str(self.player.score) + " (" + str(self.player.last_word_score) + ")"
+        arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True)
 
         # Draw pink score box (for computer)
         column = 15
@@ -386,7 +388,8 @@ class MyGame(arcade.Window):
         x = (MARGIN + WIDTH)  * column + (MARGIN + (WIDTH * 3.5)) + MARGIN * 2 + (WIDTH * 3.5)  // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
-        arcade.draw_text(str(self.computer.score), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
+        score = str(self.computer.score) + " (" + str(self.computer.last_word_score) + ")"
+        arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True)
 
         # Draw top word boxes
         for row in range(ROW_COUNT - 1):
@@ -410,7 +413,7 @@ class MyGame(arcade.Window):
             if render_row in self.player_words_found or self.pause_for_analysis:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
                 display = str(render_row) + ": " + word + " (" + str(score) + ")"
-                arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET, arcade.color.BLACK, 20, bold=True)
+                arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True)
 
         # Draw tile rack
         tiles_left = list(self.letters_typed.values())
@@ -446,8 +449,9 @@ class MyGame(arcade.Window):
             self.computer.tiles += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
             self.tile_bag_index += tiles_needed
 
-            self.computer.score += word_info[0]
-            self.players_turn    = True
+            self.computer.last_word_score = word_info[0]
+            self.computer.score          += word_info[0]
+            self.players_turn             = True
 
             self.last_grid = copy.deepcopy(self.grid)
 
@@ -638,13 +642,14 @@ class MyGame(arcade.Window):
                         self.player.tiles.remove(letter)
                         self.grid[14-row][col] = letter
                     # we copy pasted the next three lines
-                    tiles_needed            = 7 - len(self.player.tiles)
-                    self.player.tiles      += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
-                    self.tile_bag_index    += tiles_needed
-                    self.players_turn       = False
-                    self.pause_for_analysis = True
-                    self.grid_backup        = copy.deepcopy(self.grid)
-                    self.cursor             = 0
+                    tiles_needed                = 7 - len(self.player.tiles)
+                    self.player.tiles          += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+                    self.player.last_word_score = score
+                    self.tile_bag_index        += tiles_needed
+                    self.players_turn           = False
+                    self.pause_for_analysis     = True
+                    self.grid_backup            = copy.deepcopy(self.grid)
+                    self.cursor                 = 0
                     self.letters_typed.clear()
 
     def is_playable(self):
