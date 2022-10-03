@@ -334,7 +334,6 @@ class MyGame(arcade.Window):
                 self.PREFIXES.add(w[:i])
 
         self.letters_typed        = {}
-        self.just_backspaced      = False
         self.letters_to_highlight = set()
         self.definition           = ''
 
@@ -564,33 +563,23 @@ class MyGame(arcade.Window):
             letter = chr(key - 32)
             letters_remaining = Counter(self.player.tiles) - Counter(self.letters_typed.values())
             if letter in letters_remaining:
-                broke = False
                 while self.cursor_y >= 0  and \
                       self.cursor_x <= 14 and \
                       self.grid[14-self.cursor_y][self.cursor_x] != '.':
-                    if self.cursor == 1 and self.cursor_x == 14:
-                        broke = True
-                        break
-                    if self.cursor == 2 and self.cursor_y == 0:
-                        broke = True
-                        break
-                    if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
-                    if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
+                    if self.cursor == 1: self.cursor_x = min(15, self.cursor_x + 1)
+                    if self.cursor == 2: self.cursor_y = max(-1, self.cursor_y - 1)
 
-                if not broke:
+                if not (self.cursor_x > 14 or self.cursor_y < 0):
                     self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
-                    if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
-                    if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
+                    if self.cursor == 1: self.cursor_x = min(15, self.cursor_x + 1)
+                    if self.cursor == 2: self.cursor_y = max(-1, self.cursor_y - 1)
 
                 while self.cursor_y >= 0  and \
                       self.cursor_x <= 14 and \
                       self.grid[14-self.cursor_y][self.cursor_x] != '.':
-                    if self.cursor == 1 and self.cursor_x == 14:
-                        break
-                    if self.cursor == 2 and self.cursor_y == 0:
-                        break
-                    if self.cursor == 1: self.cursor_x = min(14, self.cursor_x + 1)
-                    if self.cursor == 2: self.cursor_y = max( 0, self.cursor_y - 1)
+                    if self.cursor == 1: self.cursor_x = min(15, self.cursor_x + 1)
+                    if self.cursor == 2: self.cursor_y = max(-1, self.cursor_y - 1)
+
                 word_info = self.is_playable_and_score_and_word()
                 print(word_info)
                 if word_info.is_ok():
@@ -607,26 +596,17 @@ class MyGame(arcade.Window):
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
+            self.cursor_x = min(14, self.cursor_x)
+            self.cursor_y = max(0, self.cursor_y)
 
         if key == arcade.key.BACKSPACE:
             if len(self.letters_typed):
                 self.letters_typed.popitem()
-                print("before", self.cursor, self.cursor_x, self.cursor_y)
-                if not (((self.cursor == 1 and self.cursor_x == 14) or (self.cursor == 2 and self.cursor_y == 0)) \
-                    and self.grid[14-self.cursor_y][self.cursor_x] == '.') \
-                    or self.just_backspaced:
-                        if self.cursor == 1: self.cursor_x -= 1
-                        if self.cursor == 2: self.cursor_y += 1
-                        while self.grid[14-self.cursor_y][self.cursor_x] != '.':
-                            if self.cursor == 1: self.cursor_x -= 1
-                            if self.cursor == 2: self.cursor_y += 1
-                else:
-                    self.just_backspaced = True
-                print("after", self.cursor, self.cursor_x, self.cursor_y)
-            else:
-                self.just_backspaced = False
-        else:
-            self.just_backspaced = False
+                if self.cursor == 1: self.cursor_x -= 1
+                if self.cursor == 2: self.cursor_y += 1
+                while self.grid[14-self.cursor_y][self.cursor_x] != '.':
+                    if self.cursor == 1: self.cursor_x -= 1
+                    if self.cursor == 2: self.cursor_y += 1
 
         if key == arcade.key.SPACE:
             random.shuffle(self.player.tiles)
