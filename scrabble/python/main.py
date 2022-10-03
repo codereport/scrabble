@@ -334,6 +334,7 @@ class MyGame(arcade.Window):
                 self.PREFIXES.add(w[:i])
 
         self.letters_typed        = {}
+        self.just_backspaced      = False
         self.letters_to_highlight = set()
         self.definition           = ''
 
@@ -609,11 +610,22 @@ class MyGame(arcade.Window):
         if key == arcade.key.BACKSPACE:
             if len(self.letters_typed):
                 self.letters_typed.popitem()
-                if self.cursor == 1: self.cursor_x -= 1
-                if self.cursor == 2: self.cursor_y += 1
-                while self.grid[14-self.cursor_y][self.cursor_x] != '.':
-                    if self.cursor == 1: self.cursor_x -= 1
-                    if self.cursor == 2: self.cursor_y += 1
+                print("before", self.cursor, self.cursor_x, self.cursor_y)
+                if not (((self.cursor == 1 and self.cursor_x == 14) or (self.cursor == 2 and self.cursor_y == 0)) \
+                    and self.grid[14-self.cursor_y][self.cursor_x] == '.') \
+                    or self.just_backspaced:
+                        if self.cursor == 1: self.cursor_x -= 1
+                        if self.cursor == 2: self.cursor_y += 1
+                        while self.grid[14-self.cursor_y][self.cursor_x] != '.':
+                            if self.cursor == 1: self.cursor_x -= 1
+                            if self.cursor == 2: self.cursor_y += 1
+                else:
+                    self.just_backspaced = True
+                print("after", self.cursor, self.cursor_x, self.cursor_y)
+            else:
+                self.just_backspaced = False
+        else:
+            self.just_backspaced = False
 
         if key == arcade.key.SPACE:
             random.shuffle(self.player.tiles)
