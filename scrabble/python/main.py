@@ -511,53 +511,54 @@ class MyGame(arcade.Window):
         """Called when the user releases a key"""
 
         if key in ARROW_KEYS:
-            if self.pause_for_analysis:
-                if self.pause_for_analysis_rank == None:
-                    self.pause_for_analysis_rank = 1
-                elif key == arcade.key.UP:
-                    self.pause_for_analysis_rank = (self.pause_for_analysis_rank + 12) % 14 + 1
-                elif key == arcade.key.DOWN:
-                    self.pause_for_analysis_rank = self.pause_for_analysis_rank % 14 + 1
+            if not self.letters_typed:
+                if self.pause_for_analysis:
+                    if self.pause_for_analysis_rank == None:
+                        self.pause_for_analysis_rank = 1
+                    elif key == arcade.key.UP:
+                        self.pause_for_analysis_rank = (self.pause_for_analysis_rank + 12) % 14 + 1
+                    elif key == arcade.key.DOWN:
+                        self.pause_for_analysis_rank = self.pause_for_analysis_rank % 14 + 1
 
-                self.grid = copy.deepcopy(self.last_grid)
-                self.letters_to_highlight.clear()
-                self.play_word(self.player_plays[-self.pause_for_analysis_rank], None)
+                    self.grid = copy.deepcopy(self.last_grid)
+                    self.letters_to_highlight.clear()
+                    self.play_word(self.player_plays[-self.pause_for_analysis_rank], None)
 
-            else:
-                if self.cursor == 0:
-                    self.cursor = 1
                 else:
-                    if modifiers == arcade.key.MOD_CTRL:
-                        if key in [arcade.key.LEFT, arcade.key.RIGHT]:
-                            self.cursor = 1
-                        else:
-                            self.cursor = 2
-                        if key == arcade.key.LEFT:
-                            while self.cursor_x >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                                self.cursor_x -= 1
-                            self.cursor_x += 1
-                        if key == arcade.key.RIGHT:
-                            while self.cursor_x <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                                self.cursor_x += 1
-                            self.cursor_x -= 1
-                        if key == arcade.key.DOWN:
-                            while self.cursor_y >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                                self.cursor_y -= 1
-                            self.cursor_y += 1
-                        if key == arcade.key.UP:
-                            while self.cursor_y <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                                self.cursor_y += 1
-                            self.cursor_y -= 1
+                    if self.cursor == 0:
+                        self.cursor = 1
                     else:
-                        if key in [arcade.key.LEFT, arcade.key.RIGHT] and self.cursor == 2:
-                            self.cursor = 1
-                        elif key in [arcade.key.UP, arcade.key.DOWN] and self.cursor == 1:
-                            self.cursor = 2
+                        if modifiers == arcade.key.MOD_CTRL:
+                            if key in [arcade.key.LEFT, arcade.key.RIGHT]:
+                                self.cursor = 1
+                            else:
+                                self.cursor = 2
+                            if key == arcade.key.LEFT:
+                                while self.cursor_x >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                                    self.cursor_x -= 1
+                                self.cursor_x += 1
+                            if key == arcade.key.RIGHT:
+                                while self.cursor_x <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                                    self.cursor_x += 1
+                                self.cursor_x -= 1
+                            if key == arcade.key.DOWN:
+                                while self.cursor_y >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                                    self.cursor_y -= 1
+                                self.cursor_y += 1
+                            if key == arcade.key.UP:
+                                while self.cursor_y <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
+                                    self.cursor_y += 1
+                                self.cursor_y -= 1
                         else:
-                            if key == arcade.key.LEFT:  self.cursor_x = max( 0, self.cursor_x - 1)
-                            if key == arcade.key.RIGHT: self.cursor_x = min(14, self.cursor_x + 1)
-                            if key == arcade.key.UP:    self.cursor_y = min(14, self.cursor_y + 1)
-                            if key == arcade.key.DOWN:  self.cursor_y = max( 0, self.cursor_y - 1)
+                            if key in [arcade.key.LEFT, arcade.key.RIGHT] and self.cursor == 2:
+                                self.cursor = 1
+                            elif key in [arcade.key.UP, arcade.key.DOWN] and self.cursor == 1:
+                                self.cursor = 2
+                            else:
+                                if key == arcade.key.LEFT:  self.cursor_x = max( 0, self.cursor_x - 1)
+                                if key == arcade.key.RIGHT: self.cursor_x = min(14, self.cursor_x + 1)
+                                if key == arcade.key.UP:    self.cursor_y = min(14, self.cursor_y + 1)
+                                if key == arcade.key.DOWN:  self.cursor_y = max( 0, self.cursor_y - 1)
 
         if str(chr(key)).isalpha():
             letter = chr(key - 32)
