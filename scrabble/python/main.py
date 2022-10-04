@@ -31,9 +31,9 @@ SCREEN_WIDTH  = (WIDTH + MARGIN)  * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT    + MARGIN + BOTTOM_MARGIN
 SCREEN_TITLE  = "Scrabble"
 
-FONT_SIZE = 30
+FONT_SIZE         = 30
 HORIZ_TEXT_OFFSET = 15
-VERT_TEXT_OFFSET = 15
+VERT_TEXT_OFFSET  = 15
 
 # TODO convert to Enum
 NO = 1
@@ -174,6 +174,7 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
             return Err('outside of board')
 
     word_played, score = prefix_tiles(board, dir, row, col)
+    has_prefix         = len(word_played) > 0
     word_mult          = 1
     row_delta          = 1 if dir == Direction.DOWN else 0
     col_delta          = 0 if dir == Direction.DOWN else 1
@@ -194,6 +195,8 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
         if word_played not in prefixes: return Err(word_played + ' prefix not in dictionary')
         word_played = word_played + letter
         score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
+        if len(letters) == 1:
+            one_letter_score = TILE_SCORE.get(letter) * letter_multiplier(row, col)
         word_mult *= word_multiplier(row, col)
 
         # find perpendicular words that need to be scored
@@ -211,12 +214,24 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
         col += col_delta
 
     suffix, suffix_score = suffix_tiles(board, dir, row - row_delta, col - col_delta)
-    word_played += suffix
+    word_played         += suffix
+    has_suffix           = len(suffix) > 0
 
     score += suffix_score
 
+    if not has_prefix and not has_suffix and len(letters) == 1:
+        score -= one_letter_score
+
     score *= word_mult
     score += 50 if len(letters) == 7 else 0
+
+    first_turn = is_first_turn(board)
+    if not crosses and not len(suffix) and not len(perpandicular_words) and first_call:
+        if first_turn:
+            if not valid_start:
+                return Err('first move must be through center tile')
+        else:
+            return Err('does not overlap with any other word')
 
     if first_call:
         opposite_dir = Direction.ACROSS if dir == Direction.DOWN else Direction.DOWN
@@ -225,15 +240,10 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
             res = word_score(board, dictionary, word, new_pos, False, prefixes)
             if res.is_ok():
                 score += res.value[0]
+                if len(word_played) == 1:
+                    word_played = res.value[1]
             else:
                 return res
-
-    if not crosses and not len(suffix) and not len(perpandicular_words) and first_call:
-        if is_first_turn(board):
-            if not valid_start:
-                return Err('first move must be through center tile')
-        else:
-            return Err('does not overlap with any other word')
 
     if word_played not in dictionary and not (len(word_played) == 1 and len(perpandicular_words)):
         return Err(word_played + ' not in dictionary')
@@ -596,7 +606,10 @@ class MyGame(arcade.Window):
                         self.player_scores_found.add(word_info.unwrap()[0])
                         self.definition = self.recursive_definition(word_info.unwrap()[1], 1)
                     except:
-                        print("failure: score_word_lookup")
+                        print("failure: score_word_lookup", word_info)
+                        for wi in self.player_plays:
+                            if wi[1] == word_info.unwrap()[1]:
+                                print(wi)
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
@@ -665,7 +678,7 @@ class MyGame(arcade.Window):
         return Err('no letters typed')
 
     def generate_all_plays(self, tiles):
-        words = {''.join(p) for i in range(7, 1, -1) for p in it.permutations(tiles, i)}
+        words = {''.join(p) for i in range(7, 0, -1) for p in it.permutations(tiles, i)}
         scores = Parallel(n_jobs=15, verbose=20)\
             (delayed(word_scores_for_row)\
                 (self.grid, self.DICTIONARY, row, words, self.PREFIXES) for row in range(15))
