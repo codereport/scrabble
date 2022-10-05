@@ -1,5 +1,5 @@
 """
-Scrabble Game
+HookStar Scrabble Trainer
 
 Started from https://arcade.academy/examples/array_backed_grid.html#array-backed-grid
 """
@@ -377,14 +377,14 @@ class MyGame(arcade.Window):
                 x = (MARGIN + WIDTH)  * column + MARGIN + WIDTH  // 2
                 y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
-                if (row, column) in self.letters_bingoed:
+                if self.pause_for_analysis_rank != None and (row, column) in self.letters_bingoed:
                     arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
 
                 if self.grid[render_row][column] != '.':
                     arcade.draw_text(self.grid[render_row][column], x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
                 elif (row, column) in self.letters_typed:
                     arcade.draw_text(self.letters_typed.get((row, column)), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
-                elif self.display_hook_letters != Hooks.OFF and not self.pause_for_analysis and (row, column) in self.hook_letters:
+                elif self.display_hook_letters != Hooks.OFF and (row, column) in self.hook_letters:
                     text_color = arcade.color.WHITE if color in [COLOR_TRIPLE_LETTER, COLOR_TRIPLE_WORD] else arcade.color.BLACK
                     letters = self.hook_letters[(row, column)]
                     xd, yd = 0, 0
@@ -635,8 +635,6 @@ class MyGame(arcade.Window):
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
-            self.hook_letters.clear()
-            self.display_hook_letters = Hooks.OFF
             self.cursor_x = min(14, self.cursor_x)
             self.cursor_y = max(0, self.cursor_y)
 
