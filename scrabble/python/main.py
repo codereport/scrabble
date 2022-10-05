@@ -384,7 +384,7 @@ class MyGame(arcade.Window):
                     arcade.draw_text(self.grid[render_row][column], x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
                 elif (row, column) in self.letters_typed:
                     arcade.draw_text(self.letters_typed.get((row, column)), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
-                elif self.display_hook_letters != Hooks.OFF and (row, column) in self.hook_letters:
+                elif self.display_hook_letters != Hooks.OFF and not self.pause_for_analysis and (row, column) in self.hook_letters:
                     text_color = arcade.color.WHITE if color in [COLOR_TRIPLE_LETTER, COLOR_TRIPLE_WORD] else arcade.color.BLACK
                     letters = self.hook_letters[(row, column)]
                     xd, yd = 0, 0
