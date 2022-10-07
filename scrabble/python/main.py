@@ -621,10 +621,7 @@ class MyGame(arcade.Window):
                 print(potential_play)
                 if potential_play.is_ok():
                     play = potential_play.unwrap()
-                    # TODO name that algorithm
-                    rank = 1
-                    while play != self.player_plays[-rank]:
-                        rank += 1
+                    rank = self.player_plays[::-1].index(play) + 1
                     self.player_words_found.add(rank)
                     self.player_scores_found.add(play.score)
                     self.definition = self.recursive_definition(play.word, 1)
