@@ -94,6 +94,11 @@ class Extension(Enum):
     PREFIX = 1
     SUFFIX = 2
 
+class Phase(Enum):
+    PLAYERS_TURN       = 1
+    PAUSE_FOR_ANALYSIS = 2
+    COMPUTERS_TURN     = 3
+
 @dataclass(frozen=True, order=True)
 class Position():
     dir: Direction
@@ -325,9 +330,8 @@ class MyGame(arcade.Window):
         self.player   = Player(TILE_BAG[0: 7])
         self.computer = Player(TILE_BAG[7:14])
 
-        self.pause_for_analysis      = False
+        self.phase                   = Phase.PLAYERS_TURN
         self.pause_for_analysis_rank = None
-        self.players_turn            = True
         self.player_plays            = []
         self.player_words_found      = set() # by rank
         self.player_scores_found     = set()
@@ -426,7 +430,7 @@ class MyGame(arcade.Window):
                 continue
             column = 15
             score, word, _ = self.player_plays[-render_row]
-            if self.pause_for_analysis and self.pause_for_analysis_rank == render_row:
+            if self.phase == Phase.PAUSE_FOR_ANALYSIS and self.pause_for_analysis_rank == render_row:
                 color = arcade.color.HOT_PINK
             elif render_row in self.player_words_found:
                 color = arcade.color.DARK_PASTEL_GREEN
@@ -438,7 +442,7 @@ class MyGame(arcade.Window):
             x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
             y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
-            if render_row in self.player_words_found or self.pause_for_analysis:
+            if render_row in self.player_words_found or self.phase == Phase.PAUSE_FOR_ANALYSIS:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
                 display = str(render_row) + ": " + word + " (" + str(score) + ")"
                 arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name='mono')
@@ -464,7 +468,7 @@ class MyGame(arcade.Window):
         arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name='mono')
 
         # COMPUTER LOGIC
-        if (not self.players_turn and not self.pause_for_analysis):
+        if self.phase == Phase.COMPUTERS_TURN:
             sorted_words = self.generate_all_plays(self.computer.tiles)
 
             word_info = sorted_words[-3] # COMPUTER DIFFICULTY
@@ -480,14 +484,14 @@ class MyGame(arcade.Window):
 
             self.computer.last_word_score = word_info[0]
             self.computer.score          += word_info[0]
-            self.players_turn             = True
+            self.phase                    = Phase.PLAYERS_TURN
 
             self.last_grid = copy.deepcopy(self.grid)
 
             print(self.player.score, self.computer.score)
 
         # PLAYER WORD SOLVER
-        if (self.players_turn and not self.player_plays):
+        if (self.phase == Phase.PLAYERS_TURN and not self.player_plays):
             self.player_plays = self.generate_all_plays(self.player.tiles)
             print("Done generating plays")
 
@@ -542,7 +546,7 @@ class MyGame(arcade.Window):
 
         if key in ARROW_KEYS:
             if not self.letters_typed:
-                if self.pause_for_analysis:
+                if self.phase == Phase.PAUSE_FOR_ANALYSIS:
                     if self.pause_for_analysis_rank == None:
                         self.pause_for_analysis_rank = 1
                     elif key == arcade.key.UP:
@@ -693,10 +697,10 @@ class MyGame(arcade.Window):
                 self.display_hook_letters = Hooks.OFF
 
         if key == arcade.key.ENTER:
-            if self.pause_for_analysis:
-                self.pause_for_analysis = False
+            if self.phase == Phase.PAUSE_FOR_ANALYSIS:
+                self.phase                   = Phase.COMPUTERS_TURN
                 self.pause_for_analysis_rank = None
-                self.player_plays = []
+                self.player_plays            = []
                 self.player_scores_found.clear()
                 self.player_words_found.clear()
                 self.letters_to_highlight.clear()
@@ -723,8 +727,7 @@ class MyGame(arcade.Window):
                     self.player.tiles          += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
                     self.player.last_word_score = score
                     self.tile_bag_index        += tiles_needed
-                    self.players_turn           = False
-                    self.pause_for_analysis     = True
+                    self.phase                  = Phase.PAUSE_FOR_ANALYSIS
                     self.grid_backup            = copy.deepcopy(self.grid)
                     self.cursor.dir             = Optional.empty()
                     if tiles_needed == 7:
