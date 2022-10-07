@@ -82,7 +82,7 @@ COLOR_DOUBLE_LETTER = (189, 215, 214)
 
 class Direction(Enum):
     ACROSS = 1
-    DOWN = 2
+    DOWN   = 2
 
 class Hooks(Enum):
     OFF     = 0
@@ -141,23 +141,17 @@ def deltas(dir):
     col_delta = 0 if dir == Direction.DOWN else 1
     return (row_delta, col_delta)
 
-def prefix_tiles(board, dir, row, col):
-    row_delta, col_delta = deltas(dir)
-    prev_row, prev_col, tiles, score = row, col, '', 0
-    while prev_row - row_delta >= 0 and prev_col - col_delta >= 0:
-        prev_row -= row_delta
-        prev_col -= col_delta
-        if board[prev_row][prev_col] != '.':
-            tiles += board[prev_row][prev_col]
-            score += TILE_SCORE.get(board[prev_row][prev_col])
-        else:
-            break
-    return (tiles[::-1], score)
+class Extension(Enum):
+    PREFIX = 1
+    SUFFIX = 2
 
-def suffix_tiles(board, dir, row, col):
+def extension_tiles(ext, board, dir, row, col):
     row_delta, col_delta = deltas(dir)
+    if ext == Extension.PREFIX:
+        row_delta *= -1
+        col_delta *= -1
     next_row, next_col, tiles, score = row, col, '', 0
-    while next_row + row_delta < 15 and next_col + col_delta < 15:
+    while (0 <= next_row + row_delta < 15) and (0 <= next_col + col_delta < 15):
         next_row += row_delta
         next_col += col_delta
         if board[next_row][next_col] != '.':
@@ -165,7 +159,13 @@ def suffix_tiles(board, dir, row, col):
             score += TILE_SCORE.get(board[next_row][next_col])
         else:
             break
-    return (tiles, score)
+    return (tiles, score) if ext == Extension.SUFFIX else (tiles[::-1], score)
+
+def prefix_tiles(board, dir, row, col):
+    return extension_tiles(Extension.PREFIX, board, dir, row, col)
+
+def suffix_tiles(board, dir, row, col):
+    return extension_tiles(Extension.SUFFIX, board, dir, row, col)
 
 def is_first_turn(board):
     return all('.' == c for c in mt.flatten(board))
