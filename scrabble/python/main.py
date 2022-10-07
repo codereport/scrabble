@@ -13,9 +13,10 @@ import numpy          as np  # transpose
 
 from result      import Ok, Err
 from optional    import Optional
-from enum        import Enum
+from enum        import Enum, IntEnum
 from joblib      import Parallel, delayed
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 
 ## Constants
 
@@ -80,7 +81,7 @@ COLOR_DOUBLE_LETTER = (189, 215, 214)
 
 ## Enumerators & Helper Classes
 
-class Direction(Enum):
+class Direction(IntEnum):
     ACROSS = 1
     DOWN   = 2
 
@@ -89,26 +90,11 @@ class Hooks(Enum):
     ALL     = 1
     ON_RACK = 2
 
-# TODO make immutable
+@dataclass(frozen=True, order=True)
 class Position():
-    def __init__(self, dir, row, col):
-        self.row = row
-        self.col = col
-        self.dir = dir
-
-    def __lt__(self, other):
-        return self.row < other.row
-
-    def __eq__(self, other):
-        return self.row == other.row and \
-               self.col == other.col and \
-               self.dir == other.dir
-
-    def __repr__(self):
-        return str(self.tuple())
-
-    def tuple(self):
-        return (self.row, self.col, self.dir)
+    dir: Direction
+    row: int
+    col: int
 
 class Player():
     def __init__(self, tiles):
@@ -517,13 +503,13 @@ class MyGame(arcade.Window):
 
     def play_word(self, word_info, tiles):
         score, word, pos = word_info
-        row, col, dir    = pos.tuple()
+        row, col         = pos.row, pos.col
 
         row = 14 - row # lol, wtf was i thinking :s :s
         print(score, word, pos)
 
-        row_delta, col_delta = deltas(dir)
-        prefix, _            = prefix_tiles(self.grid, dir, row, col)
+        row_delta, col_delta = deltas(pos.dir)
+        prefix, _            = prefix_tiles(self.grid, pos.dir, row, col)
 
         remaining_tiles = tiles
         for letter in word.removeprefix(prefix):
