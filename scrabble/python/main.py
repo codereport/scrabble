@@ -105,6 +105,12 @@ class Position():
     row: int
     col: int
 
+@dataclass(frozen=True, order=True)
+class Play():
+    score: int
+    word:  str
+    pos:   Position
+
 class Cursor():
     def __init__(self):
         self.dir = Optional.empty()
@@ -247,18 +253,19 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
         opposite_dir = Direction.ACROSS if dir == Direction.DOWN else Direction.DOWN
         for word, (r, c) in perpandicular_words:
             new_pos = Position(opposite_dir, 14-r, c)
-            res = word_score(board, dictionary, word, new_pos, False, prefixes)
-            if res.is_ok():
-                score += res.value[0]
+            potential_play = word_score(board, dictionary, word, new_pos, False, prefixes)
+            if potential_play.is_ok():
+                play = potential_play.unwrap()
+                score += play.score
                 if len(word_played) == 1:
-                    word_played = res.value[1]
+                    word_played = play.word
             else:
-                return res
+                return potential_play
 
     if word_played not in dictionary and not (len(word_played) == 1 and len(perpandicular_words)):
         return Err(word_played + ' not in dictionary')
 
-    return Ok((score, word_played, pos))
+    return Ok(Play(score, word_played, pos))
 
 def min_play_length(board, row, col, dir):
     if is_first_turn(board):
@@ -429,12 +436,12 @@ class MyGame(arcade.Window):
             if len(self.player_plays) == 0 or render_row + 1 > len(self.player_plays):
                 continue
             column = 15
-            score, word, _ = self.player_plays[-render_row]
+            play = self.player_plays[-render_row]
             if self.phase == Phase.PAUSE_FOR_ANALYSIS and self.pause_for_analysis_rank == render_row:
                 color = arcade.color.HOT_PINK
             elif render_row in self.player_words_found:
                 color = arcade.color.DARK_PASTEL_GREEN
-            elif score in self.player_scores_found:
+            elif play.score in self.player_scores_found:
                 color = arcade.color.YELLOW
             else:
                 color = arcade.color.LIGHT_GRAY
@@ -444,7 +451,7 @@ class MyGame(arcade.Window):
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
             if render_row in self.player_words_found or self.phase == Phase.PAUSE_FOR_ANALYSIS:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
-                display = str(render_row) + ": " + word + " (" + str(score) + ")"
+                display = str(render_row) + ": " + play.word + " (" + str(play.score) + ")"
                 arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name='mono')
 
         # Draw tile rack
@@ -470,20 +477,19 @@ class MyGame(arcade.Window):
         # COMPUTER LOGIC
         if self.phase == Phase.COMPUTERS_TURN:
             sorted_words = self.generate_all_plays(self.computer.tiles)
+            play         = sorted_words[-3] # COMPUTER DIFFICULTY
 
-            word_info = sorted_words[-3] # COMPUTER DIFFICULTY
-
-            self.computer.tiles = self.play_word(word_info, self.computer.tiles)
+            self.computer.tiles = self.play_word(play, self.computer.tiles)
 
             # this was copied
-            tiles_needed         = 7 - len(self.computer.tiles)
+            tiles_needed = 7 - len(self.computer.tiles)
             if tiles_needed == 7:
                 self.letters_bingoed = self.letters_bingoed.union(self.letters_to_highlight)
             self.computer.tiles += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
             self.tile_bag_index += tiles_needed
 
-            self.computer.last_word_score = word_info[0]
-            self.computer.score          += word_info[0]
+            self.computer.last_word_score = play.score
+            self.computer.score          += play.score
             self.phase                    = Phase.PLAYERS_TURN
 
             self.last_grid = copy.deepcopy(self.grid)
@@ -505,17 +511,13 @@ class MyGame(arcade.Window):
             return definition
         return definition + ' || ' + self.recursive_definition(redirect_word, num + 1)
 
-    def play_word(self, word_info, tiles):
-        score, word, pos = word_info
-        row, col         = pos.row, pos.col
-
-        row = 14 - row # lol, wtf was i thinking :s :s
-        print(score, word, pos)
-
-        row_delta, col_delta = deltas(pos.dir)
-        prefix, _            = prefix_tiles(self.grid, pos.dir, row, col)
-
-        remaining_tiles = tiles
+    def play_word(self, play, tiles):
+        # TODO fix the 14 - row
+        row, col             = 14 - play.pos.row, play.pos.col
+        row_delta, col_delta = deltas(play.pos.dir)
+        prefix, _            = prefix_tiles(self.grid, play.pos.dir, row, col)
+        remaining_tiles      = tiles
+        word                 = play.word
         for letter in word.removeprefix(prefix):
             if self.grid[row][col] == '.':
                 self.letters_to_highlight.add((14-row, col))
@@ -615,22 +617,17 @@ class MyGame(arcade.Window):
                     if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
                     if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
-                word_info = self.is_playable_and_score_and_word()
-                print(word_info)
-                if word_info.is_ok():
-                    try:
-                        # TODO name that algorithm
-                        rank = 1
-                        while word_info.unwrap() != self.player_plays[-rank]:
-                            rank += 1
-                        self.player_words_found.add(rank)
-                        self.player_scores_found.add(word_info.unwrap()[0])
-                        self.definition = self.recursive_definition(word_info.unwrap()[1], 1)
-                    except:
-                        print("failure: score_word_lookup", word_info)
-                        for wi in self.player_plays:
-                            if wi[1] == word_info.unwrap()[1]:
-                                print(wi)
+                potential_play = self.is_playable_and_score_and_word()
+                print(potential_play)
+                if potential_play.is_ok():
+                    play = potential_play.unwrap()
+                    # TODO name that algorithm
+                    rank = 1
+                    while play != self.player_plays[-rank]:
+                        rank += 1
+                    self.player_words_found.add(rank)
+                    self.player_scores_found.add(play.score)
+                    self.definition = self.recursive_definition(play.word, 1)
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
@@ -708,13 +705,11 @@ class MyGame(arcade.Window):
                 self.cursor.x = min(14, self.cursor.x)
                 self.cursor.y = max(0, self.cursor.y)
             else:
-                word_info = self.is_playable_and_score_and_word()
-                if word_info.is_ok():
-                    score, _, _ = word_info.unwrap()
-                    self.player.score += score
-
-                    for play in self.player_plays[-14:]:
-                        print(play)
+                potential_play = self.is_playable_and_score_and_word()
+                if potential_play.is_ok():
+                    play                        = potential_play.unwrap()
+                    self.player.score          += play.score
+                    self.player.last_word_score = play.score
 
                     self.player.word_ranks.append(min(self.player_words_found))
                     print(('{:.1f}'.format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
@@ -725,7 +720,6 @@ class MyGame(arcade.Window):
                     # we copy pasted the next three lines
                     tiles_needed                = 7 - len(self.player.tiles)
                     self.player.tiles          += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
-                    self.player.last_word_score = score
                     self.tile_bag_index        += tiles_needed
                     self.phase                  = Phase.PAUSE_FOR_ANALYSIS
                     self.grid_backup            = copy.deepcopy(self.grid)
