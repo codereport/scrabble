@@ -136,11 +136,6 @@ def tile_color(row, col):
     if BOARD[row][col] == TW: return COLOR_TRIPLE_WORD
     return COLOR_NORMAL
 
-def cursor_increment(cursor):
-    if   cursor.is_empty():                return Optional.of(Direction.ACROSS)
-    elif cursor.get() == Direction.ACROSS: return Optional.of(Direction.DOWN)
-    else:                                  return Optional.empty()
-
 def prefix_tiles(board, dir, row, col):
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
@@ -307,6 +302,17 @@ def word_scores_for_row(board, dictionary, row, words, prefixes):
                         plays.append(score.unwrap())
     return plays
 
+class Cursor():
+    def __init__(self):
+        self.dir = Optional.empty()
+        self.x   = 7
+        self.y   = 7
+
+    def rotate_dir(self):
+        if   self.dir.is_empty():                self.dir = Optional.of(Direction.ACROSS)
+        elif self.dir.get() == Direction.ACROSS: self.dir = Optional.of(Direction.DOWN)
+        else:                                    self.dir = Optional.empty()
+
 class MyGame(arcade.Window):
     """Main application class"""
 
@@ -322,10 +328,7 @@ class MyGame(arcade.Window):
 
         arcade.set_background_color(arcade.color.BLACK)
 
-        # Cursor for typings
-        self.cursor   = Optional.empty()
-        self.cursor_x = 7
-        self.cursor_y = 7
+        self.cursor = Cursor()
 
         # Setup game
         random.shuffle(TILE_BAG)
@@ -402,10 +405,10 @@ class MyGame(arcade.Window):
                             yd += 11
 
         # Draw cursor
-        if self.cursor.is_present() and len(self.letters_typed) == 0:
-            color = arcade.color.WHITE if self.cursor.get() == Direction.ACROSS else arcade.color.BLACK
-            x = (MARGIN + WIDTH)  * self.cursor_x + MARGIN + WIDTH  // 2
-            y = (MARGIN + HEIGHT) * self.cursor_y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
+        if self.cursor.dir.is_present() and len(self.letters_typed) == 0:
+            color = arcade.color.WHITE if self.cursor.dir.get() == Direction.ACROSS else arcade.color.BLACK
+            x = (MARGIN + WIDTH)  * self.cursor.x + MARGIN + WIDTH  // 2
+            y = (MARGIN + HEIGHT) * self.cursor.y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
         # Draw blue score boxes (for player)
@@ -542,9 +545,9 @@ class MyGame(arcade.Window):
         column = int(x // (WIDTH + MARGIN))
         row    = int((y - BOTTOM_MARGIN) // (HEIGHT + MARGIN))
 
-        self.cursor_x = column
-        self.cursor_y = row
-        self.cursor   = cursor_increment(self.cursor)
+        self.cursor.x = column
+        self.cursor.y = row
+        self.cursor.rotate_dir()
 
         print(f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})")
 
@@ -566,61 +569,61 @@ class MyGame(arcade.Window):
                     self.play_word(self.player_plays[-self.pause_for_analysis_rank], None)
 
                 else:
-                    if self.cursor.is_empty():
-                        self.cursor = Optional.of(Direction.ACROSS)
+                    if self.cursor.dir.is_empty():
+                        self.cursor.dir = Optional.of(Direction.ACROSS)
                     else:
                         if modifiers == arcade.key.MOD_CTRL:
                             if key in [arcade.key.LEFT, arcade.key.RIGHT]:
-                                self.cursor = Optional.of(Direction.ACROSS)
+                                self.cursor.dir = Optional.of(Direction.ACROSS)
                             else:
-                                self.cursor = Optional.of(Direction.DOWN)
+                                self.cursor.dir = Optional.of(Direction.DOWN)
                             if key == arcade.key.LEFT:
-                                while self.cursor_x >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                                    self.cursor_x -= 1
-                                self.cursor_x += 1
+                                while self.cursor.x >= 0 and self.grid[14 - self.cursor.y][self.cursor.x] == '.':
+                                    self.cursor.x -= 1
+                                self.cursor.x += 1
                             if key == arcade.key.RIGHT:
-                                while self.cursor_x <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                                    self.cursor_x += 1
-                                self.cursor_x -= 1
+                                while self.cursor.x <= 14 and self.grid[14 - self.cursor.y][self.cursor.x] == '.':
+                                    self.cursor.x += 1
+                                self.cursor.x -= 1
                             if key == arcade.key.DOWN:
-                                while self.cursor_y >= 0 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                                    self.cursor_y -= 1
-                                self.cursor_y += 1
+                                while self.cursor.y >= 0 and self.grid[14 - self.cursor.y][self.cursor.x] == '.':
+                                    self.cursor.y -= 1
+                                self.cursor.y += 1
                             if key == arcade.key.UP:
-                                while self.cursor_y <= 14 and self.grid[14 - self.cursor_y][self.cursor_x] == '.':
-                                    self.cursor_y += 1
-                                self.cursor_y -= 1
+                                while self.cursor.y <= 14 and self.grid[14 - self.cursor.y][self.cursor.x] == '.':
+                                    self.cursor.y += 1
+                                self.cursor.y -= 1
                         else:
-                            if key in [arcade.key.LEFT, arcade.key.RIGHT] and self.cursor.get() == Direction.DOWN:
-                                self.cursor = Optional.of(Direction.ACROSS)
-                            elif key in [arcade.key.UP, arcade.key.DOWN] and self.cursor.get() == Direction.ACROSS:
-                                self.cursor = Optional.of(Direction.DOWN)
+                            if key in [arcade.key.LEFT, arcade.key.RIGHT] and self.cursor.dir.get() == Direction.DOWN:
+                                self.cursor.dir = Optional.of(Direction.ACROSS)
+                            elif key in [arcade.key.UP, arcade.key.DOWN] and self.cursor.dir.get() == Direction.ACROSS:
+                                self.cursor.dir = Optional.of(Direction.DOWN)
                             else:
-                                if key == arcade.key.LEFT:  self.cursor_x = max( 0, self.cursor_x - 1)
-                                if key == arcade.key.RIGHT: self.cursor_x = min(14, self.cursor_x + 1)
-                                if key == arcade.key.UP:    self.cursor_y = min(14, self.cursor_y + 1)
-                                if key == arcade.key.DOWN:  self.cursor_y = max( 0, self.cursor_y - 1)
+                                if key == arcade.key.LEFT:  self.cursor.x = max( 0, self.cursor.x - 1)
+                                if key == arcade.key.RIGHT: self.cursor.x = min(14, self.cursor.x + 1)
+                                if key == arcade.key.UP:    self.cursor.y = min(14, self.cursor.y + 1)
+                                if key == arcade.key.DOWN:  self.cursor.y = max( 0, self.cursor.y - 1)
 
         if str(chr(key)).isalpha():
             letter = chr(key - 32)
             letters_remaining = Counter(self.player.tiles) - Counter(self.letters_typed.values())
             if letter in letters_remaining:
-                while self.cursor_y >= 0  and \
-                      self.cursor_x <= 14 and \
-                      self.grid[14-self.cursor_y][self.cursor_x] != '.':
-                    if self.cursor.get() == Direction.ACROSS: self.cursor_x = min(15, self.cursor_x + 1)
-                    if self.cursor.get() == Direction.DOWN:   self.cursor_y = max(-1, self.cursor_y - 1)
+                while self.cursor.y >= 0  and \
+                      self.cursor.x <= 14 and \
+                      self.grid[14-self.cursor.y][self.cursor.x] != '.':
+                    if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
+                    if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
-                if not (self.cursor_x > 14 or self.cursor_y < 0):
-                    self.letters_typed[(self.cursor_y, self.cursor_x)] = letter
-                    if self.cursor.get() == Direction.ACROSS: self.cursor_x = min(15, self.cursor_x + 1)
-                    if self.cursor.get() == Direction.DOWN:   self.cursor_y = max(-1, self.cursor_y - 1)
+                if not (self.cursor.x > 14 or self.cursor.y < 0):
+                    self.letters_typed[(self.cursor.y, self.cursor.x)] = letter
+                    if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
+                    if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
-                while self.cursor_y >= 0  and \
-                      self.cursor_x <= 14 and \
-                      self.grid[14-self.cursor_y][self.cursor_x] != '.':
-                    if self.cursor.get() == Direction.ACROSS: self.cursor_x = min(15, self.cursor_x + 1)
-                    if self.cursor.get() == Direction.DOWN:   self.cursor_y = max(-1, self.cursor_y - 1)
+                while self.cursor.y >= 0  and \
+                      self.cursor.x <= 14 and \
+                      self.grid[14-self.cursor.y][self.cursor.x] != '.':
+                    if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
+                    if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
                 word_info = self.is_playable_and_score_and_word()
                 print(word_info)
@@ -641,17 +644,17 @@ class MyGame(arcade.Window):
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
-            self.cursor_x = min(14, self.cursor_x)
-            self.cursor_y = max(0, self.cursor_y)
+            self.cursor.x = min(14, self.cursor.x)
+            self.cursor.y = max(0, self.cursor.y)
 
         if key == arcade.key.BACKSPACE:
             if len(self.letters_typed):
                 self.letters_typed.popitem()
-                if self.cursor.get() == Direction.ACROSS: self.cursor_x -= 1
-                if self.cursor.get() == Direction.DOWN:   self.cursor_y += 1
-                while self.grid[14-self.cursor_y][self.cursor_x] != '.':
-                    if self.cursor.get() == Direction.ACROSS: self.cursor_x -= 1
-                    if self.cursor.get() == Direction.DOWN:   self.cursor_y += 1
+                if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x -= 1
+                if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y += 1
+                while self.grid[14-self.cursor.y][self.cursor.x] != '.':
+                    if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x -= 1
+                    if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y += 1
 
         if key == arcade.key.SPACE:
             random.shuffle(self.player.tiles)
@@ -712,8 +715,8 @@ class MyGame(arcade.Window):
                 self.player_words_found.clear()
                 self.letters_to_highlight.clear()
                 self.grid = copy.deepcopy(self.grid_backup)
-                self.cursor_x = min(14, self.cursor_x)
-                self.cursor_y = max(0, self.cursor_y)
+                self.cursor.x = min(14, self.cursor.x)
+                self.cursor.y = max(0, self.cursor.y)
             else:
                 word_info = self.is_playable_and_score_and_word()
                 if word_info.is_ok():
@@ -737,7 +740,7 @@ class MyGame(arcade.Window):
                     self.players_turn           = False
                     self.pause_for_analysis     = True
                     self.grid_backup            = copy.deepcopy(self.grid)
-                    self.cursor                 = Optional.empty()
+                    self.cursor.dir             = Optional.empty()
                     if tiles_needed == 7:
                         self.letters_bingoed = self.letters_bingoed.union(self.letters_typed.keys())
                     self.letters_typed.clear()
@@ -748,7 +751,7 @@ class MyGame(arcade.Window):
     def is_playable_and_score_and_word(self):
         if len(self.letters_typed):
             start_row, start_col = next(iter(self.letters_typed))
-            dir     = self.cursor.get()
+            dir     = self.cursor.dir.get()
             pos     = Position(dir, start_row, start_col) # start row is super hacky
             letters = ''.join(self.letters_typed.values())
             return word_score(self.grid, self.DICTIONARY, letters, pos, True, self.PREFIXES)
