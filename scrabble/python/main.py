@@ -388,7 +388,7 @@ class MyGame(arcade.Window):
                 x = (MARGIN + WIDTH)  * column + MARGIN + WIDTH  // 2
                 y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
-                if self.pause_for_analysis_rank != None and (row, column) in self.letters_bingoed:
+                if self.pause_for_analysis_rank == None and (row, column) in self.letters_bingoed:
                     arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
 
                 if self.grid[render_row][column] != '.':
