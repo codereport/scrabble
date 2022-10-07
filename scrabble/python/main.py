@@ -466,7 +466,11 @@ class MyGame(arcade.Window):
         # Draw word definition
         x = 12 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
         y = 50
-        arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name='mono')
+        arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + 20, arcade.color.WHITE, 9, font_name='mono')
+
+        left     = str(98-self.tile_bag_index)
+        tile_bag = ' '.join(a + ':' + str(b) for a, b in sorted(Counter(TILE_BAG[self.tile_bag_index:]).items()))
+        arcade.draw_text(left + ' ' + tile_bag, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name='mono')
 
         # COMPUTER LOGIC
         if self.phase == Phase.COMPUTERS_TURN:
