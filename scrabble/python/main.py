@@ -295,22 +295,16 @@ def word_scores_for_row(board, dictionary, row, words, prefixes):
     if is_first_turn(board) and row != 7: return plays
     for col in range(COLUMN_COUNT):
         if board[14-row][col] == '.':
-            # TODO duplication here
-            if not is_first_turn(board):
-                m = min_play_length(board, 14-row, col, Direction.DOWN)
+            for dir in Direction:
+                if is_first_turn(board) and dir == Direction.DOWN:
+                    continue
+                m = min_play_length(board, 14-row, col, dir)
                 for word in words:
                     if len(word) >= m:
-                        pos = Position(Direction.DOWN, row, col)
+                        pos = Position(dir, row, col)
                         score = word_score(board, dictionary, word, pos, True, prefixes)
                         if score.is_ok():
                             plays.append(score.unwrap())
-            m = min_play_length(board, 14-row, col, Direction.ACROSS)
-            for word in words:
-                if len(word) >= m:
-                    pos = Position(Direction.ACROSS, row, col)
-                    score = word_score(board, dictionary, word, pos, True, prefixes)
-                    if score.is_ok():
-                        plays.append(score.unwrap())
     return plays
 
 class MyGame(arcade.Window):
