@@ -136,9 +136,13 @@ def tile_color(row, col):
     if BOARD[row][col] == TW: return COLOR_TRIPLE_WORD
     return COLOR_NORMAL
 
-def prefix_tiles(board, dir, row, col):
+def deltas(dir):
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
+    return (row_delta, col_delta)
+
+def prefix_tiles(board, dir, row, col):
+    row_delta, col_delta = deltas(dir)
     prev_row, prev_col, tiles, score = row, col, '', 0
     while prev_row - row_delta >= 0 and prev_col - col_delta >= 0:
         prev_row -= row_delta
@@ -151,8 +155,7 @@ def prefix_tiles(board, dir, row, col):
     return (tiles[::-1], score)
 
 def suffix_tiles(board, dir, row, col):
-    row_delta = 1 if dir == Direction.DOWN else 0
-    col_delta = 0 if dir == Direction.DOWN else 1
+    row_delta, col_delta = deltas(dir)
     next_row, next_col, tiles, score = row, col, '', 0
     while next_row + row_delta < 15 and next_col + col_delta < 15:
         next_row += row_delta
@@ -179,13 +182,12 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
         if len([1 for c in np.transpose(board)[col][row:] if c == '.']) < len(letters):
             return Err('outside of board')
 
-    word_played, score = prefix_tiles(board, dir, row, col)
-    has_prefix         = len(word_played) > 0
-    word_mult          = 1
-    row_delta          = 1 if dir == Direction.DOWN else 0
-    col_delta          = 0 if dir == Direction.DOWN else 1
-    crosses            = True if len(word_played) else False
-    valid_start        = False
+    word_played, score   = prefix_tiles(board, dir, row, col)
+    has_prefix           = len(word_played) > 0
+    word_mult            = 1
+    row_delta, col_delta = deltas(dir)
+    crosses              = True if len(word_played) else False
+    valid_start          = False
 
     perpandicular_words = []
 
@@ -520,10 +522,8 @@ class MyGame(arcade.Window):
         row = 14 - row # lol, wtf was i thinking :s :s
         print(score, word, pos)
 
-        row_delta = 1 if dir == Direction.DOWN else 0
-        col_delta = 0 if dir == Direction.DOWN else 1
-
-        prefix, _ = prefix_tiles(self.grid, dir, row, col)
+        row_delta, col_delta = deltas(dir)
+        prefix, _            = prefix_tiles(self.grid, dir, row, col)
 
         remaining_tiles = tiles
         for letter in word.removeprefix(prefix):
