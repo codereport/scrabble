@@ -90,11 +90,26 @@ class Hooks(Enum):
     ALL     = 1
     ON_RACK = 2
 
+class Extension(Enum):
+    PREFIX = 1
+    SUFFIX = 2
+
 @dataclass(frozen=True, order=True)
 class Position():
     dir: Direction
     row: int
     col: int
+
+class Cursor():
+    def __init__(self):
+        self.dir = Optional.empty()
+        self.x   = 7
+        self.y   = 7
+
+    def rotate_dir(self):
+        if   self.dir.is_empty():                self.dir = Optional.of(Direction.ACROSS)
+        elif self.dir.get() == Direction.ACROSS: self.dir = Optional.of(Direction.DOWN)
+        else:                                    self.dir = Optional.empty()
 
 class Player():
     def __init__(self, tiles):
@@ -126,10 +141,6 @@ def deltas(dir):
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
     return (row_delta, col_delta)
-
-class Extension(Enum):
-    PREFIX = 1
-    SUFFIX = 2
 
 def extension_tiles(ext, board, dir, row, col):
     row_delta, col_delta = deltas(dir)
@@ -289,17 +300,6 @@ def word_scores_for_row(board, dictionary, row, words, prefixes):
                     if score.is_ok():
                         plays.append(score.unwrap())
     return plays
-
-class Cursor():
-    def __init__(self):
-        self.dir = Optional.empty()
-        self.x   = 7
-        self.y   = 7
-
-    def rotate_dir(self):
-        if   self.dir.is_empty():                self.dir = Optional.of(Direction.ACROSS)
-        elif self.dir.get() == Direction.ACROSS: self.dir = Optional.of(Direction.DOWN)
-        else:                                    self.dir = Optional.empty()
 
 class MyGame(arcade.Window):
     """Main application class"""
