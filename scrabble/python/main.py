@@ -200,15 +200,15 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
     perpandicular_words = []
 
     for letter in letters:
-        if word_played not in prefixes: return Err(word_played + ' prefix not in dictionary')
+        if word_played not in prefixes: return Err(f"{word_played} prefix not in dictionary")
         while board[row][col] != '.':
-            if word_played not in prefixes: return Err(word_played + ' prefix not in dictionary')
+            if word_played not in prefixes: return Err(f"{word_played} prefix not in dictionary")
             word_played = word_played + board[row][col]
             score      += TILE_SCORE.get(board[row][col])
             row        += row_delta
             col        += col_delta
             crosses     = True
-        if word_played not in prefixes: return Err(word_played + ' prefix not in dictionary')
+        if word_played not in prefixes: return Err(f"{word_played} prefix not in dictionary")
         word_played = word_played + letter
         score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         if len(letters) == 1:
@@ -263,7 +263,7 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
                 return potential_play
 
     if word_played not in dictionary and not (len(word_played) == 1 and len(perpandicular_words)):
-        return Err(word_played + ' not in dictionary')
+        return Err(f"{word_played} not in dictionary")
 
     return Ok(Play(score, word_played, pos))
 
@@ -411,7 +411,7 @@ class MyGame(arcade.Window):
         x = (MARGIN + WIDTH)  * column + MARGIN * 2 + (WIDTH * 3.5)  // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
-        score = str(self.player.score) + " (" + str(self.player.last_word_score) + ")"
+        score = f"{self.player.score} ({self.player.last_word_score})"
         arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name='mono')
 
         # Draw pink score box (for computer)
@@ -421,7 +421,7 @@ class MyGame(arcade.Window):
         x = (MARGIN + WIDTH)  * column + (MARGIN + (WIDTH * 3.5)) + MARGIN * 2 + (WIDTH * 3.5)  // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
-        score = str(self.computer.score) + " (" + str(self.computer.last_word_score) + ")"
+        score = f"{self.computer.score} ({self.computer.last_word_score})"
         arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name='mono')
 
         # Draw top word boxes
@@ -445,7 +445,7 @@ class MyGame(arcade.Window):
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
             if render_row in self.player_words_found or self.phase == Phase.PAUSE_FOR_ANALYSIS:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
-                display = str(render_row) + ": " + play.word + " (" + str(play.score) + ")"
+                display = f"{render_row}: {play.word} ({play.score})"
                 arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name='mono')
 
         # Draw tile rack
@@ -468,9 +468,9 @@ class MyGame(arcade.Window):
         y = 50
         arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + 20, arcade.color.WHITE, 9, font_name='mono')
 
-        left     = str(98-self.tile_bag_index)
-        tile_bag = ' '.join(a + ':' + str(b) for a, b in sorted(Counter(TILE_BAG[self.tile_bag_index:]).items()))
-        arcade.draw_text(left + ' ' + tile_bag, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name='mono')
+        left     = 98 - self.tile_bag_index
+        tile_bag = ' '.join(f"{a}:{b}" for a,b in sorted(Counter(TILE_BAG[self.tile_bag_index:]).items()))
+        arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name='mono')
 
         # COMPUTER LOGIC
         if self.phase == Phase.COMPUTERS_TURN:
@@ -507,7 +507,7 @@ class MyGame(arcade.Window):
         # in case there is infinite recursion, break
         if num > 10:
             return definition
-        return definition + ' || ' + self.recursive_definition(redirect_word, num + 1)
+        return f"{definition} || {self.recursive_definition(redirect_word, num + 1)}"
 
     def play_word(self, play, tiles):
         # TODO fix the 14 - row
