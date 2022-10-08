@@ -37,28 +37,28 @@ FONT_SIZE         = 30
 HORIZ_TEXT_OFFSET = 13
 VERT_TEXT_OFFSET  = 15
 
-# TODO convert to Enum
-NO = 1
-DL = 2
-DW = 3
-TL = 4
-TW = 5
+class Tl(Enum):
+    NO = 1
+    DL = 2
+    DW = 3
+    TL = 4
+    TW = 5
 
-BOARD = [[TW, NO, NO, DL, NO, NO, NO, TW, NO, NO, NO, DL, NO, NO, TW],
-         [NO, DW, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, DW, NO],
-         [NO, NO, DW, NO, NO, NO, DL, NO, DL, NO, NO, NO, DW, NO, NO],
-         [DL, NO, NO, DW, NO, NO, NO, DL, NO, NO, NO, DW, NO, NO, DL],
-         [NO, NO, NO, NO, DW, NO, NO, NO, NO, NO, DW, NO, NO, NO, NO],
-         [NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO],
-         [NO, NO, DL, NO, NO, NO, DL, NO, DL, NO, NO, NO, DL, NO, NO],
-         [TW, NO, NO, DL, NO, NO, NO, DW, NO, NO, NO, DL, NO, NO, TW],
-         [NO, NO, DL, NO, NO, NO, DL, NO, DL, NO, NO, NO, DL, NO, NO],
-         [NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, TL, NO],
-         [NO, NO, NO, NO, DW, NO, NO, NO, NO, NO, DW, NO, NO, NO, NO],
-         [DL, NO, NO, DW, NO, NO, NO, DL, NO, NO, NO, DW, NO, NO, DL],
-         [NO, NO, DW, NO, NO, NO, DL, NO, DL, NO, NO, NO, DW, NO, NO],
-         [NO, DW, NO, NO, NO, TL, NO, NO, NO, TL, NO, NO, NO, DW, NO],
-         [TW, NO, NO, DL, NO, NO, NO, TW, NO, NO, NO, DL, NO, NO, TW]]
+BOARD = [[Tl.TW, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.TW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.TW],
+         [Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO],
+         [Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO],
+         [Tl.DL, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.DL],
+         [Tl.NO, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.NO],
+         [Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO],
+         [Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO],
+         [Tl.TW, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.TW],
+         [Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO],
+         [Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO],
+         [Tl.NO, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.NO],
+         [Tl.DL, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.DL],
+         [Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO, Tl.NO],
+         [Tl.NO, Tl.DW, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.TL, Tl.NO, Tl.NO, Tl.NO, Tl.DW, Tl.NO],
+         [Tl.TW, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.TW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.TW]]
 
 TILE_SCORE = {
     'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2,  'H': 4, 'I': 1, 'J': 8,
@@ -132,20 +132,20 @@ class Player():
 ## Free functions
 
 def letter_multiplier(row, col):
-    if BOARD[row][col] == DL: return 2
-    if BOARD[row][col] == TL: return 3
+    if BOARD[row][col] == Tl.DL: return 2
+    if BOARD[row][col] == Tl.TL: return 3
     return 1
 
 def word_multiplier(row, col):
-    if BOARD[row][col] == DW: return 2
-    if BOARD[row][col] == TW: return 3
+    if BOARD[row][col] == Tl.DW: return 2
+    if BOARD[row][col] == Tl.TW: return 3
     return 1
 
 def tile_color(row, col):
-    if BOARD[row][col] == DL: return COLOR_DOUBLE_LETTER
-    if BOARD[row][col] == DW: return COLOR_DOUBLE_WORD
-    if BOARD[row][col] == TL: return COLOR_TRIPLE_LETTER
-    if BOARD[row][col] == TW: return COLOR_TRIPLE_WORD
+    if BOARD[row][col] == Tl.DL: return COLOR_DOUBLE_LETTER
+    if BOARD[row][col] == Tl.DW: return COLOR_DOUBLE_WORD
+    if BOARD[row][col] == Tl.TL: return COLOR_TRIPLE_LETTER
+    if BOARD[row][col] == Tl.TW: return COLOR_TRIPLE_WORD
     return COLOR_NORMAL
 
 def deltas(dir):
