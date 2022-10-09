@@ -534,6 +534,9 @@ class MyGame(arcade.Window):
     def on_mouse_press(self, x, y, button, modifiers):
         """Called when the user presses a mouse button"""
 
+        if self.letters_typed:
+            return
+
         # Change the x/y screen coordinates to grid coordinates
         column = int(x // (WIDTH + MARGIN))
         row    = int((y - BOTTOM_MARGIN) // (HEIGHT + MARGIN))
