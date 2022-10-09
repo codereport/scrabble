@@ -71,7 +71,9 @@ TILE_BAG = \
     ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6 + ['S'] * 4  + ['T'] * 6 + ['U'] * 4 + \
     ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2 + ['Z'] * 1
 
-ARROW_KEYS = [arcade.key.LEFT, arcade.key.RIGHT, arcade.key.UP, arcade.key.DOWN]
+LR_ARROW_KEYS = [arcade.key.LEFT, arcade.key.RIGHT]
+UD_ARROW_KEYS = [arcade.key.UP, arcade.key.DOWN]
+ARROW_KEYS    = LR_ARROW_KEYS + UD_ARROW_KEYS
 
 COLOR_NORMAL        = (200, 196, 172)
 COLOR_TRIPLE_WORD   = (241, 108,  77)
@@ -563,30 +565,18 @@ class MyGame(arcade.Window):
                         self.cursor.dir = Optional.of(Direction.ACROSS)
                     else:
                         if modifiers == arcade.key.MOD_CTRL:
-                            if key in [arcade.key.LEFT, arcade.key.RIGHT]:
-                                self.cursor.dir = Optional.of(Direction.ACROSS)
-                            else:
-                                self.cursor.dir = Optional.of(Direction.DOWN)
-                            if key == arcade.key.LEFT:
-                                while self.cursor.x >= 0 and self.grid[14 - self.cursor.y][self.cursor.x] == '.':
-                                    self.cursor.x -= 1
-                                self.cursor.x += 1
-                            if key == arcade.key.RIGHT:
-                                while self.cursor.x <= 14 and self.grid[14 - self.cursor.y][self.cursor.x] == '.':
-                                    self.cursor.x += 1
-                                self.cursor.x -= 1
-                            if key == arcade.key.DOWN:
-                                while self.cursor.y >= 0 and self.grid[14 - self.cursor.y][self.cursor.x] == '.':
-                                    self.cursor.y -= 1
-                                self.cursor.y += 1
-                            if key == arcade.key.UP:
-                                while self.cursor.y <= 14 and self.grid[14 - self.cursor.y][self.cursor.x] == '.':
-                                    self.cursor.y += 1
-                                self.cursor.y -= 1
+                            self.cursor.dir = Optional.of(Direction.ACROSS if key in LR_ARROW_KEYS else Direction.DOWN)
+                            xd = -1 if key == arcade.key.LEFT else 1 if key == arcade.key.RIGHT else 0
+                            yd = -1 if key == arcade.key.DOWN else 1 if key == arcade.key.UP    else 0
+                            while 0 <= self.cursor.x + xd <= 14 and \
+                                  0 <= self.cursor.y + yd <= 14 and \
+                                  self.grid[14 - (self.cursor.y + yd)][self.cursor.x + xd] == '.':
+                                    self.cursor.x += xd
+                                    self.cursor.y += yd
                         else:
-                            if key in [arcade.key.LEFT, arcade.key.RIGHT] and self.cursor.dir.get() == Direction.DOWN:
+                            if key in LR_ARROW_KEYS and self.cursor.dir.get() == Direction.DOWN:
                                 self.cursor.dir = Optional.of(Direction.ACROSS)
-                            elif key in [arcade.key.UP, arcade.key.DOWN] and self.cursor.dir.get() == Direction.ACROSS:
+                            elif key in UD_ARROW_KEYS and self.cursor.dir.get() == Direction.ACROSS:
                                 self.cursor.dir = Optional.of(Direction.DOWN)
                             else:
                                 if key == arcade.key.LEFT:  self.cursor.x = max( 0, self.cursor.x - 1)
