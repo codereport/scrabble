@@ -337,7 +337,7 @@ class MyGame(arcade.Window):
         self.player_words_found      = set() # by rank
         self.player_scores_found     = set()
 
-        self.hook_letters         = defaultdict(list)
+        self.hook_letters         = defaultdict(set)
         self.display_hook_letters = Hooks.OFF
 
         self.DICTIONARY = set()
@@ -656,7 +656,7 @@ class MyGame(arcade.Window):
                                 suffix, _ = suffix_tiles(self.grid, Direction.ACROSS, row, col-1)
                                 for w in self.DICTIONARY:
                                     if w[1:] == suffix and (self.display_hook_letters == Hooks.ALL or w[0] in self.player.tiles):
-                                        self.hook_letters[(14-row, col-1)].append(w[0])
+                                        self.hook_letters[(14-row, col-1)].add(w[0])
                         if col < 14:
                             if self.grid[row][col] != '.' and \
                                 self.grid[row  ][col+1] == '.' and \
@@ -665,7 +665,7 @@ class MyGame(arcade.Window):
                                 prefix, _ = prefix_tiles(self.grid, Direction.ACROSS, row, col+1)
                                 for w in self.DICTIONARY:
                                     if w[:-1] == prefix and (self.display_hook_letters == Hooks.ALL or w[-1] in self.player.tiles):
-                                        self.hook_letters[(14-row, col+1)].append(w[-1])
+                                        self.hook_letters[(14-row, col+1)].add(w[-1])
                         # col-wise check
                         if row > 0:
                             if self.grid[row][col] != '.' and \
@@ -675,7 +675,7 @@ class MyGame(arcade.Window):
                                 suffix, _ = suffix_tiles(self.grid, Direction.DOWN, row-1, col)
                                 for w in self.DICTIONARY:
                                     if w[1:] == suffix and (self.display_hook_letters == Hooks.ALL or w[0] in self.player.tiles):
-                                        self.hook_letters[(14-(row-1), col)].append(w[0])
+                                        self.hook_letters[(14-(row-1), col)].add(w[0])
                         if row < 14:
                             if self.grid[row][col] != '.' and \
                                 self.grid[row+1][col  ] == '.' and \
@@ -684,7 +684,7 @@ class MyGame(arcade.Window):
                                 prefix, _ = prefix_tiles(self.grid, Direction.DOWN, row+1, col)
                                 for w in self.DICTIONARY:
                                     if w[:-1] == prefix and (self.display_hook_letters == Hooks.ALL or w[-1] in self.player.tiles):
-                                        self.hook_letters[(14-(row+1), col)].append(w[-1])
+                                        self.hook_letters[(14-(row+1), col)].add(w[-1])
             else:
                 self.display_hook_letters = Hooks.OFF
 
