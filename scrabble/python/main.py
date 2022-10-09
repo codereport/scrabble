@@ -359,6 +359,7 @@ class MyGame(arcade.Window):
         self.letters_typed        = {}
         self.letters_to_highlight = set()
         self.letters_bingoed      = set()
+        self.just_bingoed         = False
         self.definition           = ''
 
     def on_draw(self):
@@ -381,7 +382,7 @@ class MyGame(arcade.Window):
                 x = (MARGIN + WIDTH)  * column + MARGIN + WIDTH  // 2
                 y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
-                if self.pause_for_analysis_rank == None and (row, column) in self.letters_bingoed:
+                if not self.just_bingoed and (row, column) in self.letters_bingoed:
                     arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
 
                 if self.grid[render_row][column] != '.':
@@ -470,8 +471,8 @@ class MyGame(arcade.Window):
         y = 50
         arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + 20, arcade.color.WHITE, 9, font_name='mono')
 
-        left     = 98 - self.tile_bag_index
-        tile_bag = ' '.join(f"{a}:{b}" for a,b in sorted(Counter(TILE_BAG[self.tile_bag_index:]).items()))
+        left     = max(0, 98 - self.tile_bag_index + len(self.computer.tiles))
+        tile_bag = ' '.join(f"{a}:{b}" for a,b in sorted(Counter(TILE_BAG[self.tile_bag_index:] + self.computer.tiles).items()))
         arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name='mono')
 
         # COMPUTER LOGIC
@@ -683,6 +684,7 @@ class MyGame(arcade.Window):
                 self.phase                   = Phase.COMPUTERS_TURN
                 self.pause_for_analysis_rank = None
                 self.player_plays            = []
+                self.just_bingoed            = False
                 self.player_scores_found.clear()
                 self.player_words_found.clear()
                 self.letters_to_highlight.clear()
@@ -711,6 +713,7 @@ class MyGame(arcade.Window):
                     self.cursor.dir             = Optional.empty()
                     if tiles_needed == 7:
                         self.letters_bingoed = self.letters_bingoed.union(self.letters_typed.keys())
+                        self.just_bingoed    = True
                     self.letters_typed.clear()
 
     def is_playable(self):
