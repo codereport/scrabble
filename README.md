@@ -27,3 +27,10 @@
 \*\* Formerly SOWPODS
 
 NWL is a modified / extended version of OSPD and is used by the North American Scrabble Players Association (NASPA). CSW is used by international competitions.
+
+### Building
+
+For Python, you need to install the following with `pip3`:
+```py
+pip3 install arcade more_itertools numpy result optional.py joblib
+```
