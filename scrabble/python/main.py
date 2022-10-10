@@ -156,10 +156,8 @@ def deltas(dir):
     return (row_delta, col_delta)
 
 def extension_tiles(ext, board, dir, row, col):
-    row_delta, col_delta = deltas(dir)
-    if ext == Extension.PREFIX:
-        row_delta *= -1
-        col_delta *= -1
+    delta_factor         = -1 if ext == Extension.PREFIX else 1
+    row_delta, col_delta = tuple(delta_factor * i for i in list(deltas(dir)))
     next_row, next_col, tiles, score = row, col, '', 0
     while (0 <= next_row + row_delta < 15) and (0 <= next_col + col_delta < 15):
         next_row += row_delta
@@ -169,7 +167,7 @@ def extension_tiles(ext, board, dir, row, col):
             score += TILE_SCORE.get(board[next_row][next_col])
         else:
             break
-    return (tiles, score) if ext == Extension.SUFFIX else (tiles[::-1], score)
+    return (tiles[::delta_factor], score)
 
 def prefix_tiles(board, dir, row, col):
     return extension_tiles(Extension.PREFIX, board, dir, row, col)
