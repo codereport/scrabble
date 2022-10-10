@@ -179,16 +179,12 @@ def is_first_turn(board):
     return all('.' == c for c in mt.flatten(board))
 
 def word_score(board, dictionary, letters, pos, first_call, prefixes):
-    dir, row, col = pos.dir, pos.row, pos.col
-    row = 14 - row
+    dir, row, col = pos.dir, 14 - pos.row, pos.col
     if board[row][col] != '.':
         return Err('cannot start word on existing tile')
-    if dir == Direction.ACROSS:
-        if len([1 for c in board[row][col:] if c == '.']) < len(letters):
-            return Err('outside of board')
-    else:
-        if len([1 for c in np.transpose(board)[col][row:] if c == '.']) < len(letters):
-            return Err('outside of board')
+    rest_of_row = board[row][col:] if dir == Direction.ACROSS else np.transpose(board)[col][row:]
+    if len([1 for c in rest_of_row if c == '.']) < len(letters):
+        return Err('outside of board')
 
     word_played, score   = prefix_tiles(board, dir, row, col)
     has_prefix           = len(word_played) > 0
@@ -200,7 +196,6 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
     perpandicular_words = []
 
     for letter in letters:
-        if word_played not in prefixes: return Err(f"{word_played} prefix not in dictionary")
         while board[row][col] != '.':
             if word_played not in prefixes: return Err(f"{word_played} prefix not in dictionary")
             word_played = word_played + board[row][col]
@@ -209,11 +204,11 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
             col        += col_delta
             crosses     = True
         if word_played not in prefixes: return Err(f"{word_played} prefix not in dictionary")
-        word_played = word_played + letter
-        score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
+        word_played += letter
+        score       += TILE_SCORE.get(letter) * letter_multiplier(row, col)
+        word_mult   *= word_multiplier(row, col)
         if len(letters) == 1:
             one_letter_score = TILE_SCORE.get(letter) * letter_multiplier(row, col)
-        word_mult *= word_multiplier(row, col)
 
         # find perpendicular words that need to be scored
         if dir == Direction.ACROSS:
