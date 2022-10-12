@@ -681,6 +681,8 @@ class MyGame(arcade.Window):
                 self.pause_for_analysis_rank = None
                 self.player_plays            = []
                 self.just_bingoed            = False
+                self.display_hook_letters    = Hooks.OFF
+                self.hook_letters.clear()
                 self.player_scores_found.clear()
                 self.player_words_found.clear()
                 self.letters_to_highlight.clear()
