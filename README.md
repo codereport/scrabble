@@ -13,7 +13,7 @@
         <img src="https://img.shields.io/twitter/follow/code_report.svg?style=social&label=@code_report" /></a>
 </p>
 
-![Screenshot from 2022-10-04 17-25-14](https://user-images.githubusercontent.com/36027403/193934424-5d853e83-a5c3-44d1-b346-601146411482.png)
+![image](https://user-images.githubusercontent.com/36027403/195234531-096bb1e5-f773-4b02-afd0-b14d4a3f779f.png)
 
 ### Scrabble Dictionaries
 
