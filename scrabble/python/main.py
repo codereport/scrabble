@@ -7,9 +7,7 @@ Started from https://arcade.academy/examples/array_backed_grid.html#array-backed
 import random                # shuffle
 import copy                  # deepcopy
 import itertools      as it  # permutations
-import more_itertools as mt  # flatten
 import arcade
-import numpy          as np  # transpose
 
 from result      import Ok, Err
 from optional    import Optional
@@ -175,13 +173,13 @@ def suffix_tiles(board, dir, row, col):
     return extension_tiles(Extension.SUFFIX, board, dir, row, col)
 
 def is_first_turn(board):
-    return all('.' == c for c in mt.flatten(board))
+    return all('.' == c for c in it.chain(*board))
 
 def word_score(board, dictionary, letters, pos, first_call, prefixes):
     dir, row, col = pos.dir, 14 - pos.row, pos.col
     if board[row][col] != '.':
         return Err('cannot start word on existing tile')
-    rest_of_row = board[row][col:] if dir == Direction.ACROSS else np.transpose(board)[col][row:]
+    rest_of_row = board[row][col:] if dir == Direction.ACROSS else list(zip(*board))[col][row:]
     if len([1 for c in rest_of_row if c == '.']) < len(letters):
         return Err('outside of board')
 
