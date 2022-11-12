@@ -14,7 +14,6 @@ import numpy          as np  # transpose
 from result      import Ok, Err
 from optional    import Optional
 from enum        import Enum, IntEnum
-from joblib      import Parallel, delayed
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
@@ -286,23 +285,6 @@ def min_play_length(board, row, col, dir):
                    (col + 1 + i <= 14 and board[row][col + i + 1] != '.'):
                     return i + 1
     return 10
-
-def word_scores_for_row(board, dictionary, row, words, prefixes):
-    plays = []
-    if is_first_turn(board) and row != 7: return plays
-    for col in range(COLUMN_COUNT):
-        if board[14-row][col] == '.':
-            for dir in Direction:
-                if is_first_turn(board) and dir == Direction.DOWN:
-                    continue
-                m = min_play_length(board, 14-row, col, dir)
-                for word in words:
-                    if len(word) >= m:
-                        pos = Position(dir, row, col)
-                        score = word_score(board, dictionary, word, pos, True, prefixes)
-                        if score.is_ok():
-                            plays.append(score.unwrap())
-    return plays
 
 class MyGame(arcade.Window):
     """Main application class"""
@@ -730,10 +712,23 @@ class MyGame(arcade.Window):
 
     def generate_all_plays(self, tiles):
         words = {''.join(p) for i in range(7, 0, -1) for p in it.permutations(tiles, i)}
-        scores = Parallel(n_jobs=15, verbose=20)\
-            (delayed(word_scores_for_row)\
-                (self.grid, self.DICTIONARY, row, words, self.PREFIXES) for row in range(15))
-        return sorted(mt.flatten(scores))
+        plays = []
+        for row in range(15):
+            if is_first_turn(self.grid) and row != 7:
+                continue
+            for col in range(COLUMN_COUNT):
+                if self.grid[14-row][col] == '.':
+                    for dir in Direction:
+                        if is_first_turn(self.grid) and dir == Direction.DOWN:
+                            continue
+                        m = min_play_length(self.grid, 14-row, col, dir)
+                        for word in words:
+                            if len(word) >= m:
+                                pos = Position(dir, row, col)
+                                score = word_score(self.grid, self.DICTIONARY, word, pos, True, self.PREFIXES)
+                                if score.is_ok():
+                                    plays.append(score.unwrap())
+        return sorted(plays)
 
 def main():
     MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
