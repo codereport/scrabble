@@ -4,11 +4,11 @@ HookStar Scrabble Trainer
 Started from https://arcade.academy/examples/array_backed_grid.html#array-backed-grid
 """
 
-import arcade
 import random                # shuffle
 import copy                  # deepcopy
 import itertools      as it  # permutations
 import more_itertools as mt  # flatten
+import arcade
 import numpy          as np  # transpose
 
 from result      import Ok, Err
@@ -190,20 +190,22 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
     has_prefix           = len(word_played) > 0
     word_mult            = 1
     row_delta, col_delta = deltas(dir)
-    crosses              = True if len(word_played) else False
+    crosses              = len(word_played) > 0
     valid_start          = False
 
     perpandicular_words = []
 
     for letter in letters:
         while board[row][col] != '.':
-            if word_played not in prefixes: return Err(f"{word_played} prefix not in dictionary")
+            if word_played not in prefixes:
+                return Err(f"{word_played} prefix not in dictionary")
             word_played = word_played + board[row][col]
             score      += TILE_SCORE.get(board[row][col])
             row        += row_delta
             col        += col_delta
             crosses     = True
-        if word_played not in prefixes: return Err(f"{word_played} prefix not in dictionary")
+        if word_played not in prefixes:
+            return Err(f"{word_played} prefix not in dictionary")
         word_played += letter
         score       += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         word_mult   *= word_multiplier(row, col)
@@ -237,7 +239,7 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
     score += 50 if len(letters) == 7 else 0
 
     first_turn = is_first_turn(board)
-    if not crosses and not len(suffix) and not len(perpandicular_words) and first_call:
+    if not crosses and len(suffix) == 0 and len(perpandicular_words) == 0 and first_call:
         if first_turn:
             if not valid_start:
                 return Err('first move must be through center tile')
@@ -546,7 +548,7 @@ class MyGame(arcade.Window):
         if key in ARROW_KEYS:
             if not self.letters_typed:
                 if self.phase == Phase.PAUSE_FOR_ANALYSIS:
-                    if self.pause_for_analysis_rank == None:
+                    if self.pause_for_analysis_rank is None:
                         self.pause_for_analysis_rank = 1
                     elif key == arcade.key.UP:
                         self.pause_for_analysis_rank = (self.pause_for_analysis_rank + 12) % 14 + 1
@@ -734,7 +736,6 @@ class MyGame(arcade.Window):
         return sorted(mt.flatten(scores))
 
 def main():
-
     MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
     arcade.run()
 
