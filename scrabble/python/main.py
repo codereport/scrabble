@@ -4,9 +4,8 @@ HookStar Scrabble Trainer
 Started from https://arcade.academy/examples/array_backed_grid.html#array-backed-grid
 """
 
-import random                # shuffle
-import copy                  # deepcopy
-import itertools      as it  # permutations
+import random           # shuffle
+import itertools as it  # permutations
 import arcade
 
 from result      import Ok, Err
@@ -14,6 +13,7 @@ from optional    import Optional
 from enum        import Enum, IntEnum
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+from board       import Board
 
 ## Constants
 
@@ -159,9 +159,10 @@ def extension_tiles(ext, board, dir, row, col):
     while (0 <= next_row + row_delta < 15) and (0 <= next_col + col_delta < 15):
         next_row += row_delta
         next_col += col_delta
-        if board[next_row][next_col] != '.':
-            tiles += board[next_row][next_col]
-            score += TILE_SCORE.get(board[next_row][next_col])
+        pos = (next_row, next_col)
+        if board.is_filled(pos):
+            tiles += board.tile(pos)
+            score += TILE_SCORE.get(board.tile(pos))
         else:
             break
     return (tiles[::delta_factor], score)
@@ -172,14 +173,11 @@ def prefix_tiles(board, dir, row, col):
 def suffix_tiles(board, dir, row, col):
     return extension_tiles(Extension.SUFFIX, board, dir, row, col)
 
-def is_first_turn(board):
-    return all('.' == c for c in it.chain(*board))
-
 def word_score(board, dictionary, letters, pos, first_call, prefixes):
     dir, row, col = pos.dir, 14 - pos.row, pos.col
-    if board[row][col] != '.':
+    if board.is_filled((row, col)):
         return Err('cannot start word on existing tile')
-    rest_of_row = board[row][col:] if dir == Direction.ACROSS else list(zip(*board))[col][row:]
+    rest_of_row = board._tiles[row][col:] if dir == Direction.ACROSS else list(zip(*board._tiles))[col][row:]
     if len([1 for c in rest_of_row if c == '.']) < len(letters):
         return Err('outside of board')
 
@@ -193,11 +191,11 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
     perpandicular_words = []
 
     for letter in letters:
-        while board[row][col] != '.':
+        while board.is_filled((row, col)):
             if word_played not in prefixes:
                 return Err(f"{word_played} prefix not in dictionary")
-            word_played = word_played + board[row][col]
-            score      += TILE_SCORE.get(board[row][col])
+            word_played = word_played + board.tile((row, col))
+            score      += TILE_SCORE.get(board.tile((row, col)))
             row        += row_delta
             col        += col_delta
             crosses     = True
@@ -211,12 +209,10 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
 
         # find perpendicular words that need to be scored
         if dir == Direction.ACROSS:
-            if (row + 1 <= 14 and board[row+1][col] != '.') or \
-               (row - 1 >= 0  and board[row-1][col] != '.'):
+            if board.is_filled((row + 1, col)) or board.is_filled((row - 1, col)):
                 perpandicular_words.append((letter, (row, col)))
         else:
-            if (col + 1 <= 14 and board[row][col+1] != '.') or \
-               (col - 1 >= 0  and board[row][col-1] != '.'):
+            if board.is_filled((row, col + 1)) or board.is_filled((row, col - 1)):
                 perpandicular_words.append((letter, (row, col)))
         if row * col == 49:
             valid_start = True
@@ -235,9 +231,8 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
     score *= word_mult
     score += 50 if len(letters) == 7 else 0
 
-    first_turn = is_first_turn(board)
     if not crosses and len(suffix) == 0 and len(perpandicular_words) == 0 and first_call:
-        if first_turn:
+        if board.is_first_turn():
             if not valid_start:
                 return Err('first move must be through center tile')
         else:
@@ -262,25 +257,25 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
     return Ok(Play(score, word_played, pos))
 
 def min_play_length(board, row, col, dir):
-    if is_first_turn(board):
+    if board.is_first_turn():
         return 1
     if dir == Direction.DOWN:
-        if row - 1 >= 0 and board[row - 1][col] != '.':
+        if row - 1 >= 0 and board.is_filled((row - 1, col)):
             return 1
         for i in range(7):
             if row + i <= 14:
-                if (col - 1     >= 0  and board[row + i][col - 1] != '.') or \
-                   (col + 1     <= 14 and board[row + i][col + 1] != '.') or \
-                   (row + 1 + i <= 14 and board[row + i + 1][col] != '.'):
+                if board.is_filled((row + i, col - 1)) or \
+                   board.is_filled((row + i, col + 1)) or \
+                   board.is_filled((row + i + 1, col)):
                     return i + 1
     else:
-        if col - 1 >= 0 and board[row][col - 1] != '.':
+        if col - 1 >= 0 and board.is_filled((row, col)):
             return 1
         for i in range(7):
             if col + i <= 14:
-                if (row - 1     >= 0  and board[row - 1][col + i] != '.') or \
-                   (row + 1     <= 14 and board[row + 1][col + i] != '.') or \
-                   (col + 1 + i <= 14 and board[row][col + i + 1] != '.'):
+                if board.is_filled((row - 1, col + i)) or \
+                   board.is_filled((row + 1, col + i)) or \
+                   board.is_filled((row, col + i + 1)):
                     return i + 1
     return 10
 
@@ -293,9 +288,9 @@ class MyGame(arcade.Window):
         super().__init__(width, height, title)
 
         # Create a 2 dimensional array. A two dimensional array is simply a list of lists.
-        self.grid        = [['.'] * 15 for i in range(15)]
-        self.grid_backup = copy.deepcopy(self.grid)
-        self.last_grid   = copy.deepcopy(self.grid)
+        self.grid        = Board()
+        self.grid_backup = self.grid.copy()
+        self.last_grid   = self.grid.copy()
 
         arcade.set_background_color(arcade.color.BLACK)
 
@@ -348,7 +343,8 @@ class MyGame(arcade.Window):
         for row in range(ROW_COUNT):
             render_row = 14 - row
             for column in range(COLUMN_COUNT):
-                color = tile_color(row, column) if self.grid[render_row][column] == '.' else arcade.color.AMETHYST
+                pos = (render_row, column)
+                color = tile_color(row, column) if self.grid.is_empty(pos) else arcade.color.AMETHYST
                 if (row, column) in self.letters_typed:
                     color = played_tile_color
                 elif (row, column) in self.letters_to_highlight:
@@ -360,8 +356,8 @@ class MyGame(arcade.Window):
                 if not self.just_bingoed and (row, column) in self.letters_bingoed:
                     arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
 
-                if self.grid[render_row][column] != '.':
-                    arcade.draw_text(self.grid[render_row][column], x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
+                if self.grid.is_filled(pos):
+                    arcade.draw_text(self.grid.tile(pos), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
                 elif (row, column) in self.letters_typed:
                     arcade.draw_text(self.letters_typed.get((row, column)), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
                 elif self.display_hook_letters != Hooks.OFF and (row, column) in self.hook_letters:
@@ -468,7 +464,7 @@ class MyGame(arcade.Window):
             self.computer.score          += play.score
             self.phase                    = Phase.PLAYERS_TURN
 
-            self.last_grid = copy.deepcopy(self.grid)
+            self.last_grid = self.grid.copy()
 
             print(self.player.score, self.computer.score)
 
@@ -495,9 +491,9 @@ class MyGame(arcade.Window):
         remaining_tiles      = tiles
         word                 = play.word
         for letter in word.removeprefix(prefix):
-            if self.grid[row][col] == '.':
+            if self.grid.is_empty((row, col)):
                 self.letters_to_highlight.add((14-row, col))
-                self.grid[row][col] = letter
+                self.grid.set_tile((row, col), letter)
                 if remaining_tiles:
                     remaining_tiles.remove(letter)
             col += col_delta
@@ -535,7 +531,7 @@ class MyGame(arcade.Window):
                     elif key == arcade.key.DOWN:
                         self.pause_for_analysis_rank = self.pause_for_analysis_rank % 14 + 1
 
-                    self.grid = copy.deepcopy(self.last_grid)
+                    self.grid = self.last_grid.copy()
                     self.letters_to_highlight.clear()
                     self.play_word(self.player_plays[-self.pause_for_analysis_rank], None)
 
@@ -547,11 +543,9 @@ class MyGame(arcade.Window):
                             self.cursor.dir = Optional.of(Direction.ACROSS if key in LR_ARROW_KEYS else Direction.DOWN)
                             xd = -1 if key == arcade.key.LEFT else 1 if key == arcade.key.RIGHT else 0
                             yd = -1 if key == arcade.key.DOWN else 1 if key == arcade.key.UP    else 0
-                            while 0 <= self.cursor.x + xd <= 14 and \
-                                  0 <= self.cursor.y + yd <= 14 and \
-                                  self.grid[14 - (self.cursor.y + yd)][self.cursor.x + xd] == '.':
-                                    self.cursor.x += xd
-                                    self.cursor.y += yd
+                            while self.grid.is_empty((14 - (self.cursor.y + yd), self.cursor.x + xd)):
+                                self.cursor.x += xd
+                                self.cursor.y += yd
                         else:
                             if key in LR_ARROW_KEYS and self.cursor.dir.get() == Direction.DOWN:
                                 self.cursor.dir = Optional.of(Direction.ACROSS)
@@ -567,9 +561,7 @@ class MyGame(arcade.Window):
             letter = chr(key - 32)
             letters_remaining = Counter(self.player.tiles) - Counter(self.letters_typed.values())
             if letter in letters_remaining:
-                while self.cursor.y >= 0  and \
-                      self.cursor.x <= 14 and \
-                      self.grid[14-self.cursor.y][self.cursor.x] != '.':
+                while self.grid.is_filled((14-self.cursor.y, self.cursor.x)):
                     if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
                     if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
@@ -578,9 +570,7 @@ class MyGame(arcade.Window):
                     if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
                     if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
-                while self.cursor.y >= 0  and \
-                      self.cursor.x <= 14 and \
-                      self.grid[14-self.cursor.y][self.cursor.x] != '.':
+                while self.grid.is_filled((14-self.cursor.y, self.cursor.x)):
                     if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
                     if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
@@ -603,7 +593,7 @@ class MyGame(arcade.Window):
                 self.letters_typed.popitem()
                 if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x -= 1
                 if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y += 1
-                while self.grid[14-self.cursor.y][self.cursor.x] != '.':
+                while self.grid.is_filled((14-self.cursor.y, self.cursor.x)):
                     if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x -= 1
                     if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y += 1
 
@@ -617,39 +607,24 @@ class MyGame(arcade.Window):
                 for row in range(0, 15):
                     for col in range(0,15):
                         # row-wise check
-                        if col > 1:
-                            if self.grid[row][col] != '.' and \
-                                self.grid[row  ][col-1] == '.' and \
-                                (row < 14 and self.grid[row+1][col-1] == '.') and \
-                                (row > 0  and self.grid[row-1][col-1] == '.'):
+                        if self.grid.is_filled((row, col)):
+                            if self.grid.are_all_empty([(row, col - 1), (row + 1, col - 1), (row - 1, col - 1)]):
                                 suffix, _ = suffix_tiles(self.grid, Direction.ACROSS, row, col-1)
                                 for w in self.DICTIONARY:
                                     if w[1:] == suffix and (self.display_hook_letters == Hooks.ALL or w[0] in self.player.tiles):
                                         self.hook_letters[(14-row, col-1)].add(w[0])
-                        if col < 14:
-                            if self.grid[row][col] != '.' and \
-                                self.grid[row  ][col+1] == '.' and \
-                                (row < 14 and self.grid[row+1][col+1] == '.') and \
-                                (row > 0  and self.grid[row-1][col+1] == '.'):
+                            if self.grid.are_all_empty([(row, col + 1), (row + 1, col + 1), (row - 1, col + 1)]):
                                 prefix, _ = prefix_tiles(self.grid, Direction.ACROSS, row, col+1)
                                 for w in self.DICTIONARY:
                                     if w[:-1] == prefix and (self.display_hook_letters == Hooks.ALL or w[-1] in self.player.tiles):
                                         self.hook_letters[(14-row, col+1)].add(w[-1])
                         # col-wise check
-                        if row > 0:
-                            if self.grid[row][col] != '.' and \
-                                self.grid[row-1][col  ] == '.' and \
-                                (col < 14 and self.grid[row-1][col+1] == '.') and \
-                                (col > 0  and self.grid[row-1][col-1] == '.'):
+                            if self.grid.are_all_empty([(row - 1, col), (row - 1, col + 1), (row - 1, col - 1)]):
                                 suffix, _ = suffix_tiles(self.grid, Direction.DOWN, row-1, col)
                                 for w in self.DICTIONARY:
                                     if w[1:] == suffix and (self.display_hook_letters == Hooks.ALL or w[0] in self.player.tiles):
                                         self.hook_letters[(14-(row-1), col)].add(w[0])
-                        if row < 14:
-                            if self.grid[row][col] != '.' and \
-                                self.grid[row+1][col  ] == '.' and \
-                                (col < 14 and self.grid[row+1][col+1] == '.') and \
-                                (col > 0  and self.grid[row+1][col-1] == '.'):
+                            if self.grid.are_all_empty([(row + 1, col), (row + 1, col+1), (row + 1, col-1)]):
                                 prefix, _ = prefix_tiles(self.grid, Direction.DOWN, row+1, col)
                                 for w in self.DICTIONARY:
                                     if w[:-1] == prefix and (self.display_hook_letters == Hooks.ALL or w[-1] in self.player.tiles):
@@ -668,7 +643,7 @@ class MyGame(arcade.Window):
                 self.player_scores_found.clear()
                 self.player_words_found.clear()
                 self.letters_to_highlight.clear()
-                self.grid = copy.deepcopy(self.grid_backup)
+                self.grid = self.grid_backup.copy()
                 self.cursor.x = min(14, self.cursor.x)
                 self.cursor.y = max(0, self.cursor.y)
             else:
@@ -683,13 +658,13 @@ class MyGame(arcade.Window):
 
                     for (row, col), letter in self.letters_typed.items():
                         self.player.tiles.remove(letter)
-                        self.grid[14-row][col] = letter
+                        self.grid.set_tile((14-row, col), letter)
                     # we copy pasted the next three lines
                     tiles_needed                = 7 - len(self.player.tiles)
                     self.player.tiles          += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
                     self.tile_bag_index        += tiles_needed
                     self.phase                  = Phase.PAUSE_FOR_ANALYSIS
-                    self.grid_backup            = copy.deepcopy(self.grid)
+                    self.grid_backup            = self.grid.copy()
                     self.cursor.dir             = Optional.empty()
                     if tiles_needed == 7:
                         self.letters_bingoed = self.letters_bingoed.union(self.letters_typed.keys())
@@ -712,12 +687,12 @@ class MyGame(arcade.Window):
         words = {''.join(p) for i in range(7, 0, -1) for p in it.permutations(tiles, i)}
         plays = []
         for row in range(15):
-            if is_first_turn(self.grid) and row != 7:
+            if self.grid.is_first_turn() and row != 7:
                 continue
             for col in range(COLUMN_COUNT):
-                if self.grid[14-row][col] == '.':
+                if self.grid.is_empty((14-row, col)):
                     for dir in Direction:
-                        if is_first_turn(self.grid) and dir == Direction.DOWN:
+                        if self.grid.is_first_turn() and dir == Direction.DOWN:
                             continue
                         m = min_play_length(self.grid, 14-row, col, dir)
                         for word in words:

@@ -1,26 +1,20 @@
 # Inital code taken from https://github.com/boringcactus/Appel-Jacobson-scrabble/blob/canon/board.py
 
+import copy
+import itertools as it
+
 class Board:
-    def __init__(self, size):
-        self.size = size
-        self._tiles = []
-        for _ in range(size):
-            row = []
-            for _ in range(size):
-                row.append(None)
-            self._tiles.append(row)
+    def __init__(self):
+        self.size = 15
+        self._tiles = [['.'] * self.size for i in range(self.size)]
 
     def __str__(self):
-        return '\n'.join(''.join(x if x is not None else '_' for x in row) for row in self._tiles)
+        return '\n'.join(''.join(x if x != '.' else '_' for x in row) for row in self._tiles)
 
     def all_positions(self):
-        result = []
-        for row in range(self.size):
-            for col in range(self.size):
-                result.append((row, col))
-        return result
+        result = list(it.product(range(0, 15), range(0,15)))
 
-    def get_tile(self, pos):
+    def tile(self, pos):
         row, col = pos
         return self._tiles[row][col]
 
@@ -33,13 +27,16 @@ class Board:
         return row >= 0 and row < self.size and col >= 0 and col < self.size
 
     def is_empty(self, pos):
-        return self.in_bounds(pos) and self.get_tile(pos) is None
+        return self.in_bounds(pos) and self.tile(pos) == '.'
+
+    def are_all_empty(self, poss):
+        return all(self.is_empty(pos) for pos in poss)
 
     def is_filled(self, pos):
-        return self.in_bounds(pos) and self.get_tile(pos) is not None
+        return self.in_bounds(pos) and self.tile(pos) != '.'
+
+    def is_first_turn(self):
+        return all('.' == c for c in it.chain(*self._tiles))
 
     def copy(self):
-        result = Board(self.size)
-        for pos in self.all_positions():
-            result.set_tile(pos, self.get_tile(pos))
-        return result
+        return copy.deepcopy(self)
