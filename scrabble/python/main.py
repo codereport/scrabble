@@ -15,7 +15,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from board       import Board, Position, Direction
 from solver      import SolverState
-from letter_tree import nwl_2020
+from trie        import nwl_2020
 
 ## Constants
 
@@ -60,15 +60,15 @@ BOARD = [[Tl.TW, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.TW, Tl.NO, Tl.NO, 
          [Tl.TW, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.TW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.TW]]
 
 TILE_SCORE = {
-    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2,  'H': 4, 'I': 1, 'J': 8,
-    'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1,
-    'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10}
+    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4,  'G': 2,  'H': 4, 'I': 1, 'J': 8,
+    'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3,  'Q': 10, 'R': 1, 'S': 1, 'T': 1,
+    'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10, ' ': 0 }
 
 TILE_BAG = \
     ['A'] * 9 + ['B'] * 2 + ['C'] * 2 + ['D'] * 4 + ['E'] * 12 + ['F'] * 2 + ['G'] * 3 + \
     ['H'] * 2 + ['I'] * 9 + ['J'] * 1 + ['K'] * 1 + ['L'] * 4  + ['M'] * 2 + ['N'] * 6 + \
     ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6 + ['S'] * 4  + ['T'] * 6 + ['U'] * 4 + \
-    ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2 + ['Z'] * 1
+    ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2 + ['Z'] * 1  + [' '] * 10
 
 LR_ARROW_KEYS = [arcade.key.LEFT, arcade.key.RIGHT]
 UD_ARROW_KEYS = [arcade.key.UP, arcade.key.DOWN]
@@ -287,6 +287,7 @@ class MyGame(arcade.Window):
         self.letters_typed        = {}
         self.letters_to_highlight = set()
         self.letters_bingoed      = set()
+        self.blank_letters        = set()
         self.just_bingoed         = False
         self.definition           = ''
 
@@ -315,9 +316,13 @@ class MyGame(arcade.Window):
                     arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
 
                 if self.grid.is_filled(pos):
-                    arcade.draw_text(self.grid.tile(pos), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
+                    arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
                 elif (row, column) in self.letters_typed:
-                    arcade.draw_text(self.letters_typed.get((row, column)), x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
+                    if (row, column) in self.blank_letters:
+                        letter = self.letters_typed.get((row, column)).lower()
+                    else:
+                        letter = self.letters_typed.get((row, column))
+                    arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
                 elif self.display_hook_letters != Hooks.OFF and (row, column) in self.hook_letters:
                     text_color = arcade.color.WHITE if color in [COLOR_TRIPLE_LETTER, COLOR_TRIPLE_WORD] else arcade.color.BLACK
                     letters = self.hook_letters[(row, column)]
@@ -519,9 +524,19 @@ class MyGame(arcade.Window):
                                 if key == arcade.key.UP:    self.cursor.y = min(14, self.cursor.y + 1)
                                 if key == arcade.key.DOWN:  self.cursor.y = max( 0, self.cursor.y - 1)
 
-        if str(chr(key)).isalpha():
+        elif str(chr(key)).isalpha():
             letter = chr(key - 32)
             letters_remaining = Counter(self.player.tiles) - Counter(self.letters_typed.values())
+            need_blank = False
+            if letter not in letters_remaining and ' ' in letters_remaining:
+                need_blank = True
+                val = letters_remaining[' ']
+                if val == 0:
+                    letters_remaining.pop(' ')
+                else:
+                    letters_remaining[' '] = val - 1
+                letters_remaining[letter] = 1
+
             if letter in letters_remaining:
                 while self.grid.is_filled((14-self.cursor.y, self.cursor.x)):
                     if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
@@ -529,6 +544,9 @@ class MyGame(arcade.Window):
 
                 if not (self.cursor.x > 14 or self.cursor.y < 0):
                     self.letters_typed[(self.cursor.y, self.cursor.x)] = letter
+                    if need_blank:
+                        self.blank_letters.add((self.cursor.y, self.cursor.x))
+                        print(self.blank_letters)
                     if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
                     if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
