@@ -10,10 +10,12 @@ import arcade
 
 from result      import Ok, Err
 from optional    import Optional
-from enum        import Enum, IntEnum
+from enum        import Enum
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from board       import Board
+from board       import Board, Position, Direction
+from solver      import SolverState
+from letter_tree import nwl_2020
 
 ## Constants
 
@@ -80,10 +82,6 @@ COLOR_DOUBLE_LETTER = (189, 215, 214)
 
 ## Enumerators & Helper Classes
 
-class Direction(IntEnum):
-    ACROSS = 1
-    DOWN   = 2
-
 class Hooks(Enum):
     OFF     = 0
     ALL     = 1
@@ -97,12 +95,6 @@ class Phase(Enum):
     PLAYERS_TURN       = 1
     PAUSE_FOR_ANALYSIS = 2
     COMPUTERS_TURN     = 3
-
-@dataclass(frozen=True, order=True)
-class Position():
-    dir: Direction
-    row: int
-    col: int
 
 @dataclass(frozen=True, order=True)
 class Play():
@@ -156,7 +148,7 @@ def extension_tiles(ext, board, dir, row, col):
     delta_factor         = -1 if ext == Extension.PREFIX else 1
     row_delta, col_delta = tuple(delta_factor * i for i in list(deltas(dir)))
     next_row, next_col, tiles, score = row, col, '', 0
-    while (0 <= next_row + row_delta < 15) and (0 <= next_col + col_delta < 15):
+    while True:
         next_row += row_delta
         next_col += col_delta
         pos = (next_row, next_col)
@@ -173,7 +165,7 @@ def prefix_tiles(board, dir, row, col):
 def suffix_tiles(board, dir, row, col):
     return extension_tiles(Extension.SUFFIX, board, dir, row, col)
 
-def word_score(board, dictionary, letters, pos, first_call, prefixes):
+def word_score(board, dictionary, letters, pos, first_call):
     dir, row, col = pos.dir, 14 - pos.row, pos.col
     if board.is_filled((row, col)):
         return Err('cannot start word on existing tile')
@@ -192,15 +184,11 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
 
     for letter in letters:
         while board.is_filled((row, col)):
-            if word_played not in prefixes:
-                return Err(f"{word_played} prefix not in dictionary")
             word_played = word_played + board.tile((row, col))
             score      += TILE_SCORE.get(board.tile((row, col)))
             row        += row_delta
             col        += col_delta
             crosses     = True
-        if word_played not in prefixes:
-            return Err(f"{word_played} prefix not in dictionary")
         word_played += letter
         score       += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         word_mult   *= word_multiplier(row, col)
@@ -242,7 +230,7 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
         opposite_dir = Direction.ACROSS if dir == Direction.DOWN else Direction.DOWN
         for word, (r, c) in perpandicular_words:
             new_pos = Position(opposite_dir, 14-r, c)
-            potential_play = word_score(board, dictionary, word, new_pos, False, prefixes)
+            potential_play = word_score(board, dictionary, word, new_pos, False)
             if potential_play.is_ok():
                 play = potential_play.unwrap()
                 score += play.score
@@ -251,33 +239,10 @@ def word_score(board, dictionary, letters, pos, first_call, prefixes):
             else:
                 return potential_play
 
-    if word_played not in dictionary and not (len(word_played) == 1 and len(perpandicular_words)):
+    if not dictionary.is_word(word_played) and not (len(word_played) == 1 and len(perpandicular_words)):
         return Err(f"{word_played} not in dictionary")
 
     return Ok(Play(score, word_played, pos))
-
-def min_play_length(board, row, col, dir):
-    if board.is_first_turn():
-        return 1
-    if dir == Direction.DOWN:
-        if row - 1 >= 0 and board.is_filled((row - 1, col)):
-            return 1
-        for i in range(7):
-            if row + i <= 14:
-                if board.is_filled((row + i, col - 1)) or \
-                   board.is_filled((row + i, col + 1)) or \
-                   board.is_filled((row + i + 1, col)):
-                    return i + 1
-    else:
-        if col - 1 >= 0 and board.is_filled((row, col)):
-            return 1
-        for i in range(7):
-            if col + i <= 14:
-                if board.is_filled((row - 1, col + i)) or \
-                   board.is_filled((row + 1, col + i)) or \
-                   board.is_filled((row, col + i + 1)):
-                    return i + 1
-    return 10
 
 class MyGame(arcade.Window):
     """Main application class"""
@@ -312,19 +277,12 @@ class MyGame(arcade.Window):
         self.hook_letters         = defaultdict(set)
         self.display_hook_letters = Hooks.OFF
 
-        self.DICTIONARY = set()
         self.DEFINITIONS = dict()
         with open('../dictionary/nwl_2020.txt') as f:
             for line in f:
                 words = line.strip().split()
-                self.DICTIONARY.add(words[0])
                 self.DEFINITIONS[words[0]] = ' '.join(words[1:])
-
-        self.PREFIXES = set()
-        self.PREFIXES.add('')
-        for w in self.DICTIONARY:
-            for i in range(1, len(w)+1):
-                self.PREFIXES.add(w[:i])
+        self.trie = nwl_2020()
 
         self.letters_typed        = {}
         self.letters_to_highlight = set()
@@ -494,8 +452,12 @@ class MyGame(arcade.Window):
             if self.grid.is_empty((row, col)):
                 self.letters_to_highlight.add((14-row, col))
                 self.grid.set_tile((row, col), letter)
-                if remaining_tiles:
-                    remaining_tiles.remove(letter)
+                try:
+                    if remaining_tiles:
+                        remaining_tiles.remove(letter)
+                except:
+                    print("FAIL!!!")
+                    print(letter, remaining_tiles)
             col += col_delta
             row += row_delta
 
@@ -578,10 +540,14 @@ class MyGame(arcade.Window):
                 print(potential_play)
                 if potential_play.is_ok():
                     play = potential_play.unwrap()
-                    rank = self.player_plays[::-1].index(play) + 1
-                    self.player_words_found.add(rank)
-                    self.player_scores_found.add(play.score)
-                    self.definition = self.recursive_definition(play.word, 1)
+                    try:
+                        rank = self.player_plays[::-1].index(play) + 1
+                        self.player_words_found.add(rank)
+                        self.player_scores_found.add(play.score)
+                        self.definition = self.recursive_definition(play.word, 1)
+                    except:
+                        print("FAIL!")
+                        print(play)
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
@@ -604,31 +570,11 @@ class MyGame(arcade.Window):
             if self.display_hook_letters in [Hooks.OFF, Hooks.ALL] :
                 self.display_hook_letters = Hooks.ALL if self.display_hook_letters == Hooks.OFF else Hooks.ON_RACK
                 self.hook_letters.clear()
-                for row in range(0, 15):
-                    for col in range(0,15):
-                        # row-wise check
-                        if self.grid.is_filled((row, col)):
-                            if self.grid.are_all_empty([(row, col - 1), (row + 1, col - 1), (row - 1, col - 1)]):
-                                suffix, _ = suffix_tiles(self.grid, Direction.ACROSS, row, col-1)
-                                for w in self.DICTIONARY:
-                                    if w[1:] == suffix and (self.display_hook_letters == Hooks.ALL or w[0] in self.player.tiles):
-                                        self.hook_letters[(14-row, col-1)].add(w[0])
-                            if self.grid.are_all_empty([(row, col + 1), (row + 1, col + 1), (row - 1, col + 1)]):
-                                prefix, _ = prefix_tiles(self.grid, Direction.ACROSS, row, col+1)
-                                for w in self.DICTIONARY:
-                                    if w[:-1] == prefix and (self.display_hook_letters == Hooks.ALL or w[-1] in self.player.tiles):
-                                        self.hook_letters[(14-row, col+1)].add(w[-1])
-                        # col-wise check
-                            if self.grid.are_all_empty([(row - 1, col), (row - 1, col + 1), (row - 1, col - 1)]):
-                                suffix, _ = suffix_tiles(self.grid, Direction.DOWN, row-1, col)
-                                for w in self.DICTIONARY:
-                                    if w[1:] == suffix and (self.display_hook_letters == Hooks.ALL or w[0] in self.player.tiles):
-                                        self.hook_letters[(14-(row-1), col)].add(w[0])
-                            if self.grid.are_all_empty([(row + 1, col), (row + 1, col+1), (row + 1, col-1)]):
-                                prefix, _ = prefix_tiles(self.grid, Direction.DOWN, row+1, col)
-                                for w in self.DICTIONARY:
-                                    if w[:-1] == prefix and (self.display_hook_letters == Hooks.ALL or w[-1] in self.player.tiles):
-                                        self.hook_letters[(14-(row+1), col)].add(w[-1])
+                solver = SolverState(self.trie, self.grid, self.player.tiles)
+                hooks = solver.cross_check_for_display(self.display_hook_letters == Hooks.ON_RACK)
+                for pos in self.grid.all_positions():
+                    row, col = pos
+                    self.hook_letters[(14 - row, col)] = hooks[pos]
             else:
                 self.display_hook_letters = Hooks.OFF
 
@@ -680,28 +626,17 @@ class MyGame(arcade.Window):
             dir     = self.cursor.dir.get()
             pos     = Position(dir, start_row, start_col) # start row is super hacky
             letters = ''.join(self.letters_typed.values())
-            return word_score(self.grid, self.DICTIONARY, letters, pos, True, self.PREFIXES)
+            return word_score(self.grid, self.trie, letters, pos, True)
         return Err('no letters typed')
 
     def generate_all_plays(self, tiles):
-        words = {''.join(p) for i in range(7, 0, -1) for p in it.permutations(tiles, i)}
-        plays = []
-        for row in range(15):
-            if self.grid.is_first_turn() and row != 7:
-                continue
-            for col in range(COLUMN_COUNT):
-                if self.grid.is_empty((14-row, col)):
-                    for dir in Direction:
-                        if self.grid.is_first_turn() and dir == Direction.DOWN:
-                            continue
-                        m = min_play_length(self.grid, 14-row, col, dir)
-                        for word in words:
-                            if len(word) >= m:
-                                pos = Position(dir, row, col)
-                                score = word_score(self.grid, self.DICTIONARY, word, pos, True, self.PREFIXES)
-                                if score.is_ok():
-                                    plays.append(score.unwrap())
-        return sorted(plays)
+        plays = SolverState(self.trie, self.grid, tiles).find_all_options()
+        valid_plays = []
+        for pos, letters in plays:
+            score = word_score(self.grid, self.trie, letters, Position(pos.dir, 14-pos.row, pos.col), True)
+            if score.is_ok():
+                valid_plays.append(score.unwrap())
+        return sorted(valid_plays)
 
 def main():
     MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)

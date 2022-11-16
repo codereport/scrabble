@@ -3,6 +3,19 @@
 import copy
 import itertools as it
 
+from dataclasses import dataclass
+from enum        import IntEnum
+
+class Direction(IntEnum):
+    ACROSS = 1
+    DOWN   = 2
+
+@dataclass(frozen=True, order=True)
+class Position():
+    dir: Direction
+    row: int
+    col: int
+
 class Board:
     def __init__(self):
         self.size = 15
@@ -12,7 +25,7 @@ class Board:
         return '\n'.join(''.join(x if x != '.' else '_' for x in row) for row in self._tiles)
 
     def all_positions(self):
-        result = list(it.product(range(0, 15), range(0,15)))
+        return it.product(range(0, 15), range(0,15))
 
     def tile(self, pos):
         row, col = pos
@@ -28,9 +41,6 @@ class Board:
 
     def is_empty(self, pos):
         return self.in_bounds(pos) and self.tile(pos) == '.'
-
-    def are_all_empty(self, poss):
-        return all(self.is_empty(pos) for pos in poss)
 
     def is_filled(self, pos):
         return self.in_bounds(pos) and self.tile(pos) != '.'
