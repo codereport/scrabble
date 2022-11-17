@@ -293,6 +293,12 @@ class MyGame(arcade.Window):
         self.just_bingoed         = False
         self.definition           = ''
 
+    def draw_letter(self, letter, x, y, color, pos):
+        arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
+        if not self.just_bingoed and pos in self.letters_bingoed:
+            arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
+        arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
+
     def on_draw(self):
         """Render the screen"""
 
@@ -314,22 +320,17 @@ class MyGame(arcade.Window):
 
                 x = (MARGIN + WIDTH)  * column + MARGIN + WIDTH  // 2
                 y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
-                arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
-                if not self.just_bingoed and pos in self.letters_bingoed:
-                    arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
+
+                if   self.grid.is_filled(bpos): letter = self.grid.tile(bpos)
+                elif pos in self.letters_typed: letter = self.letters_typed.get(pos)
+                else:                           letter = ' '
 
                 blank = pos in self.temp_blank_letters | self.blank_letters
-                if self.grid.is_filled(bpos):
-                    letter = self.grid.tile(bpos)
-                    if blank:
-                        letter = letter.lower()
-                    arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
-                elif pos in self.letters_typed:
-                    letter = self.letters_typed.get(pos)
-                    if blank:
-                        letter = letter.lower()
-                    arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
-                elif self.display_hook_letters != Hooks.OFF and pos in self.hook_letters:
+                if blank:
+                    letter = letter.lower()
+                self.draw_letter(letter, x, y, color, pos)
+
+                if self.display_hook_letters != Hooks.OFF and pos in self.hook_letters:
                     text_color = arcade.color.WHITE if color in [COLOR_TRIPLE_LETTER, COLOR_TRIPLE_WORD] else arcade.color.BLACK
                     letters = self.hook_letters[pos]
                     xd, yd = 0, 0
@@ -402,9 +403,7 @@ class MyGame(arcade.Window):
             x = (4 + i) * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
             y = 50
 
-            # Draw the box - TODO refactor this into draw_tile
-            arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
-            arcade.draw_text(tile, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
+            self.draw_letter(tile, x, y, color, None)
 
         # Draw word definition
         x = 12 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
