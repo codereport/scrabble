@@ -108,15 +108,16 @@ class SolverState:
         self.extend_after(partial_word, current_node, anchor_pos, False)
         if limit > 0:
             for next_letter in current_node.children.keys():
-                if next_letter in self.rack:
-                    self.rack.remove(next_letter)
+                if next_letter in self.rack or ' ' in self.rack:
+                    letter_to_add_back = next_letter if next_letter in self.rack else ' '
+                    self.rack.remove(letter_to_add_back)
                     self.before_part(
                         partial_word + next_letter,
                         current_node.children[next_letter],
                         anchor_pos,
                         limit - 1
                     )
-                    self.rack.append(next_letter)
+                    self.rack.append(letter_to_add_back)
 
     def extend_after(self, partial_word, current_node, next_pos, anchor_filled):
         if (self.board.is_empty(next_pos) or not self.board.in_bounds(next_pos)) and \
@@ -125,15 +126,16 @@ class SolverState:
         if self.board.in_bounds(next_pos):
             if self.board.is_empty(next_pos):
                 for next_letter in current_node.children.keys():
-                    if next_letter in self.rack and next_letter in self.cross_check_results[next_pos]:
-                        self.rack.remove(next_letter)
+                    if (next_letter in self.rack or ' ' in self.rack) and next_letter in self.cross_check_results[next_pos]:
+                        letter_to_add_back = next_letter if next_letter in self.rack else ' '
+                        self.rack.remove(letter_to_add_back)
                         self.extend_after(
                             partial_word + next_letter,
                             current_node.children[next_letter],
                             self.after(next_pos),
                             True
                         )
-                        self.rack.append(next_letter)
+                        self.rack.append(letter_to_add_back)
             else:
                 existing_letter = self.board.tile(next_pos)
                 if existing_letter in current_node.children.keys():

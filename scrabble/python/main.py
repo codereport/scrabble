@@ -287,6 +287,7 @@ class MyGame(arcade.Window):
         self.letters_typed        = {}
         self.letters_to_highlight = set()
         self.letters_bingoed      = set()
+        self.temp_blank_letters   = set()
         self.blank_letters        = set()
         self.just_bingoed         = False
         self.definition           = ''
@@ -316,9 +317,13 @@ class MyGame(arcade.Window):
                     arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
 
                 if self.grid.is_filled(pos):
+                    if (row, column) in self.temp_blank_letters or (row, column) in self.blank_letters:
+                        letter = self.grid.tile(pos).lower()
+                    else:
+                        letter = self.grid.tile(pos)
                     arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
                 elif (row, column) in self.letters_typed:
-                    if (row, column) in self.blank_letters:
+                    if (row, column) in self.temp_blank_letters or (row, column) in self.blank_letters:
                         letter = self.letters_typed.get((row, column)).lower()
                     else:
                         letter = self.letters_typed.get((row, column))
@@ -526,16 +531,15 @@ class MyGame(arcade.Window):
 
         elif str(chr(key)).isalpha():
             letter = chr(key - 32)
-            letters_remaining = Counter(self.player.tiles) - Counter(self.letters_typed.values())
+            letters_remaining = self.player.tiles.copy()
+            for c in self.letters_typed.values():
+                to_remove = c if c in letters_remaining else ' '
+                letters_remaining.remove(to_remove)
             need_blank = False
             if letter not in letters_remaining and ' ' in letters_remaining:
                 need_blank = True
-                val = letters_remaining[' ']
-                if val == 0:
-                    letters_remaining.pop(' ')
-                else:
-                    letters_remaining[' '] = val - 1
-                letters_remaining[letter] = 1
+                letters_remaining.remove(' ')
+                letters_remaining.append(letter)
 
             if letter in letters_remaining:
                 while self.grid.is_filled((14-self.cursor.y, self.cursor.x)):
@@ -545,8 +549,7 @@ class MyGame(arcade.Window):
                 if not (self.cursor.x > 14 or self.cursor.y < 0):
                     self.letters_typed[(self.cursor.y, self.cursor.x)] = letter
                     if need_blank:
-                        self.blank_letters.add((self.cursor.y, self.cursor.x))
-                        print(self.blank_letters)
+                        self.temp_blank_letters.add((self.cursor.y, self.cursor.x))
                     if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
                     if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
@@ -569,6 +572,7 @@ class MyGame(arcade.Window):
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
+            self.temp_blank_letters.clear()
             self.cursor.x = min(14, self.cursor.x)
             self.cursor.y = max(0, self.cursor.y)
 
@@ -580,6 +584,9 @@ class MyGame(arcade.Window):
                 while self.grid.is_filled((14-self.cursor.y, self.cursor.x)):
                     if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x -= 1
                     if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y += 1
+                pos = (self.cursor.y, self.cursor.x)
+                if pos in self.temp_blank_letters:
+                    self.temp_blank_letters.remove(pos)
 
         if key == arcade.key.SPACE:
             random.shuffle(self.player.tiles)
@@ -610,6 +617,9 @@ class MyGame(arcade.Window):
                 self.grid = self.grid_backup.copy()
                 self.cursor.x = min(14, self.cursor.x)
                 self.cursor.y = max(0, self.cursor.y)
+                self.blank_letters = self.blank_letters.union(self.temp_blank_letters)
+                self.temp_blank_letters.clear()
+
             else:
                 potential_play = self.is_playable_and_score_and_word()
                 if potential_play.is_ok():
@@ -621,7 +631,10 @@ class MyGame(arcade.Window):
                     print(('{:.1f}'.format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
 
                     for (row, col), letter in self.letters_typed.items():
-                        self.player.tiles.remove(letter)
+                        if (row, col) in self.temp_blank_letters:
+                            self.player.tiles.remove(' ')
+                        else:
+                            self.player.tiles.remove(letter)
                         self.grid.set_tile((14-row, col), letter)
                     # we copy pasted the next three lines
                     tiles_needed                = 7 - len(self.player.tiles)
