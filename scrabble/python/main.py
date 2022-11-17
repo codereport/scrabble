@@ -298,7 +298,7 @@ class MyGame(arcade.Window):
         if not self.just_bingoed and pos in self.letters_bingoed:
             arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
         arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
-        if letter not in [' ', '→','↓']:
+        if letter.isupper():
             value = TILE_SCORE[letter.upper()]
             arcade.draw_text(value, x-HORIZ_TEXT_OFFSET + 27, y-VERT_TEXT_OFFSET - 6, arcade.color.WHITE, 10, bold=True, font_name='mono')
 
