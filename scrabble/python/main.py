@@ -132,7 +132,8 @@ def word_multiplier(row, col):
     if BOARD[row][col] == Tl.TW: return 3
     return 1
 
-def tile_color(row, col):
+def tile_color(pos):
+    row, col = pos
     if BOARD[row][col] == Tl.DL: return COLOR_DOUBLE_LETTER
     if BOARD[row][col] == Tl.DW: return COLOR_DOUBLE_WORD
     if BOARD[row][col] == Tl.TL: return COLOR_TRIPLE_LETTER
@@ -303,12 +304,12 @@ class MyGame(arcade.Window):
         for row in range(ROW_COUNT):
             board_row = 14 - row
             for column in range(COLUMN_COUNT):
-                board_pos = (board_row, column)
+                bpos = (board_row, column)
                 pos = (row, column)
-                color = tile_color(row, column) if self.grid.is_empty(board_pos) else arcade.color.AMETHYST
-                if (row, column) in self.letters_typed:
+                color = tile_color(pos) if self.grid.is_empty(bpos) else arcade.color.AMETHYST
+                if pos in self.letters_typed:
                     color = played_tile_color
-                elif (row, column) in self.letters_to_highlight:
+                elif pos in self.letters_to_highlight:
                     color = arcade.color.HOT_PINK
 
                 x = (MARGIN + WIDTH)  * column + MARGIN + WIDTH  // 2
@@ -318,19 +319,19 @@ class MyGame(arcade.Window):
                     arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
 
                 blank = pos in self.temp_blank_letters | self.blank_letters
-                if self.grid.is_filled(board_pos):
-                    letter = self.grid.tile(board_pos)
+                if self.grid.is_filled(bpos):
+                    letter = self.grid.tile(bpos)
                     if blank:
                         letter = letter.lower()
                     arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
-                elif (row, column) in self.letters_typed:
-                    letter = self.letters_typed.get((row, column))
+                elif pos in self.letters_typed:
+                    letter = self.letters_typed.get(pos)
                     if blank:
                         letter = letter.lower()
                     arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
-                elif self.display_hook_letters != Hooks.OFF and (row, column) in self.hook_letters:
+                elif self.display_hook_letters != Hooks.OFF and pos in self.hook_letters:
                     text_color = arcade.color.WHITE if color in [COLOR_TRIPLE_LETTER, COLOR_TRIPLE_WORD] else arcade.color.BLACK
-                    letters = self.hook_letters[(row, column)]
+                    letters = self.hook_letters[pos]
                     xd, yd = 0, 0
                     for letter in letters:
                         arcade.draw_text(letter, x - WIDTH / 2.35 + xd, y + HEIGHT / 3.4 - yd, text_color, 10, bold=True, font_name='mono')
