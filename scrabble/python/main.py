@@ -298,7 +298,7 @@ class MyGame(arcade.Window):
         if not self.just_bingoed and pos in self.letters_bingoed:
             arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
         arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
-        if letter != ' ':
+        if letter not in [' ', '→','↓']:
             value = TILE_SCORE[letter.upper()]
             arcade.draw_text(value, x-HORIZ_TEXT_OFFSET + 27, y-VERT_TEXT_OFFSET - 6, arcade.color.WHITE, 10, bold=True, font_name='mono')
 
@@ -346,10 +346,10 @@ class MyGame(arcade.Window):
 
         # Draw cursor
         if self.cursor.dir.is_present() and len(self.letters_typed) == 0:
-            color = arcade.color.WHITE if self.cursor.dir.get() == Direction.ACROSS else arcade.color.BLACK
+            arrow = '→' if self.cursor.dir.get() == Direction.ACROSS else '↓'
             x = (MARGIN + WIDTH)  * self.cursor.x + MARGIN + WIDTH  // 2
             y = (MARGIN + HEIGHT) * self.cursor.y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
-            arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
+            self.draw_letter(arrow, x, y, arcade.color.BLACK, None)
 
         # Draw blue score boxes (for player)
         column = 15
