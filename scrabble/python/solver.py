@@ -7,6 +7,7 @@ class SolverState:
     def __init__(self, dictionary, board, rack):
         self.dictionary = dictionary
         self.board = board
+        self.original_rack = rack.copy()
         self.rack = rack
         self.cross_check_results = None
         self.direction = None
@@ -44,13 +45,21 @@ class SolverState:
         play_pos = last_pos
         word_idx = len(word) - 1
         letters_actually_played = ""
+        blanks = set()
+        letters_remaining = self.original_rack.copy()
         while word_idx >= 0:
             if self.board.is_empty(play_pos):
                 row, col = play_pos
-                letters_actually_played += word[word_idx]
+                letter = word[word_idx]
+                letters_actually_played += letter
+                if letter in letters_remaining:
+                    letters_remaining.remove(letter)
+                else:
+                    letters_remaining.remove(' ')
+                    blanks.add((14 - row, col))
             if word_idx == 0:
                 pos = Position(dir=self.direction, row=row, col=col)
-                self.plays.append((pos, letters_actually_played[::-1]))
+                self.plays.append((pos, letters_actually_played[::-1], blanks))
             word_idx -= 1
             play_pos = self.before(play_pos)
 

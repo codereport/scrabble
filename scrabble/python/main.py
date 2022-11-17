@@ -166,7 +166,7 @@ def prefix_tiles(board, dir, row, col):
 def suffix_tiles(board, dir, row, col):
     return extension_tiles(Extension.SUFFIX, board, dir, row, col)
 
-def word_score(board, dictionary, letters, pos, first_call):
+def word_score(board, dictionary, letters, pos, first_call, blank_poss):
     dir, row, col = pos.dir, 14 - pos.row, pos.col
     if board.is_filled((row, col)):
         return Err('cannot start word on existing tile')
@@ -186,13 +186,15 @@ def word_score(board, dictionary, letters, pos, first_call):
     for letter in letters:
         while board.is_filled((row, col)):
             word_played = word_played + board.tile((row, col))
-            score      += TILE_SCORE.get(board.tile((row, col)))
+            if (14 - row, col) not in blank_poss:
+                score  += TILE_SCORE.get(board.tile((row, col)))
             row        += row_delta
             col        += col_delta
             crosses     = True
         word_played += letter
-        score       += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         word_mult   *= word_multiplier(row, col)
+        if (14 - row, col) not in blank_poss:
+            score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         if len(letters) == 1:
             one_letter_score = TILE_SCORE.get(letter) * letter_multiplier(row, col)
 
@@ -231,7 +233,7 @@ def word_score(board, dictionary, letters, pos, first_call):
         opposite_dir = Direction.ACROSS if dir == Direction.DOWN else Direction.DOWN
         for word, (r, c) in perpandicular_words:
             new_pos = Position(opposite_dir, 14-r, c)
-            potential_play = word_score(board, dictionary, word, new_pos, False)
+            potential_play = word_score(board, dictionary, word, new_pos, False, blank_poss)
             if potential_play.is_ok():
                 play = potential_play.unwrap()
                 score += play.score
@@ -335,7 +337,7 @@ class MyGame(arcade.Window):
                     letter = letter.lower()
                 self.draw_letter(letter, x, y, color, pos)
 
-                if self.display_hook_letters != Hooks.OFF and pos in self.hook_letters:
+                if pos not in self.letters_typed and self.display_hook_letters != Hooks.OFF and pos in self.hook_letters:
                     text_color = arcade.color.WHITE if color in [COLOR_TRIPLE_LETTER, COLOR_TRIPLE_WORD] else arcade.color.BLACK
                     letters = self.hook_letters[pos]
                     xd, yd = 0, 0
@@ -401,10 +403,10 @@ class MyGame(arcade.Window):
         tiles_left = list(self.letters_typed.values())
         blanks_typed = len(self.temp_blank_letters)
         for i, tile in enumerate(self.player.tiles):
-            if tile in tiles_left:
+            if self.phase == Phase.PLAYERS_TURN and tile in tiles_left:
                 color = played_tile_color
                 tiles_left.remove(tile)
-            elif blanks_typed > 0 and tile == ' ':
+            elif self.phase == Phase.PLAYERS_TURN and blanks_typed > 0 and tile == ' ':
                 color = played_tile_color
                 blanks_typed -= 1
             else:
@@ -666,14 +668,14 @@ class MyGame(arcade.Window):
             dir     = self.cursor.dir.get()
             pos     = Position(dir, start_row, start_col) # start row is super hacky
             letters = ''.join(self.letters_typed.values())
-            return word_score(self.grid, self.trie, letters, pos, True)
+            return word_score(self.grid, self.trie, letters, pos, True, self.temp_blank_letters)
         return Err('no letters typed')
 
     def generate_all_plays(self, tiles):
         plays = SolverState(self.trie, self.grid, tiles).find_all_options()
         valid_plays = []
-        for pos, letters in plays:
-            score = word_score(self.grid, self.trie, letters, Position(pos.dir, 14-pos.row, pos.col), True)
+        for pos, letters, blanks in plays:
+            score = word_score(self.grid, self.trie, letters, Position(pos.dir, 14-pos.row, pos.col), True, blanks | self.blank_letters)
             if score.is_ok():
                 valid_plays.append(score.unwrap())
         return sorted(valid_plays)
