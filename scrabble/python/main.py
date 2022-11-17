@@ -298,9 +298,11 @@ class MyGame(arcade.Window):
         if not self.just_bingoed and pos in self.letters_bingoed:
             arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
         arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
-        if letter.isupper():
-            value = TILE_SCORE[letter.upper()]
-            arcade.draw_text(value, x-HORIZ_TEXT_OFFSET + 27, y-VERT_TEXT_OFFSET - 6, arcade.color.WHITE, 10, bold=True, font_name='mono')
+        # if letter.isupper():
+        #     value = TILE_SCORE[letter.upper()]
+        #     font_size = 5  if value == 10 else 10
+        #     offset    = 25 if value == 10 else 27
+        #     arcade.draw_text(value, x-HORIZ_TEXT_OFFSET + offset, y-VERT_TEXT_OFFSET - 6, arcade.color.WHITE, font_size, bold=True, font_name='mono')
 
     def on_draw(self):
         """Render the screen"""
@@ -397,10 +399,14 @@ class MyGame(arcade.Window):
 
         # Draw tile rack
         tiles_left = list(self.letters_typed.values())
+        blanks_typed = len(self.temp_blank_letters)
         for i, tile in enumerate(self.player.tiles):
             if tile in tiles_left:
                 color = played_tile_color
                 tiles_left.remove(tile)
+            elif blanks_typed > 0 and tile == ' ':
+                color = played_tile_color
+                blanks_typed -= 1
             else:
                 color = arcade.color.AMETHYST
             x = (4 + i) * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
