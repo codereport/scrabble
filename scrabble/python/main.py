@@ -98,9 +98,10 @@ class Phase(Enum):
 
 @dataclass(frozen=True, order=True)
 class Play():
-    score: int
-    word:  str
-    pos:   Position
+    score:  int
+    word:   str
+    pos:    Position
+    blanks: set()
 
 class Cursor():
     def __init__(self):
@@ -180,6 +181,7 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
     row_delta, col_delta = deltas(dir)
     crosses              = len(word_played) > 0
     valid_start          = False
+    blanks               = set()
 
     perpandicular_words = []
 
@@ -195,6 +197,8 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
         word_mult   *= word_multiplier(row, col)
         if (14 - row, col) not in blank_poss:
             score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
+        else:
+            blanks.add((14 - row, col))
         if len(letters) == 1:
             one_letter_score = TILE_SCORE.get(letter) * letter_multiplier(row, col)
 
@@ -245,7 +249,7 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
     if not dictionary.is_word(word_played) and not (len(word_played) == 1 and len(perpandicular_words)):
         return Err(f"{word_played} not in dictionary")
 
-    return Ok(Play(score, word_played, pos))
+    return Ok(Play(score, word_played, pos, blanks))
 
 class MyGame(arcade.Window):
     """Main application class"""
@@ -429,6 +433,7 @@ class MyGame(arcade.Window):
         if self.phase == Phase.COMPUTERS_TURN:
             sorted_words = self.generate_all_plays(self.computer.tiles)
             play         = sorted_words[-3] # COMPUTER DIFFICULTY
+            self.blank_letters = self.blank_letters | play.blanks
 
             self.computer.tiles = self.play_word(play, self.computer.tiles)
 
@@ -471,7 +476,7 @@ class MyGame(arcade.Window):
         word                 = play.word
         for letter in word.removeprefix(prefix):
             if self.grid.is_empty((row, col)):
-                self.letters_to_highlight.add((14-row, col))
+                self.letters_to_highlight.add((14 - row, col))
                 self.grid.set_tile((row, col), letter)
                 try:
                     if remaining_tiles:
