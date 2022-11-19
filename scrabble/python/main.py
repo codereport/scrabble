@@ -478,12 +478,11 @@ class MyGame(arcade.Window):
             if self.grid.is_empty((row, col)):
                 self.letters_to_highlight.add((14 - row, col))
                 self.grid.set_tile((row, col), letter)
-                try:
-                    if remaining_tiles:
+                if remaining_tiles:
+                    if letter in remaining_tiles:
                         remaining_tiles.remove(letter)
-                except:
-                    print("FAIL!!!")
-                    print(letter, remaining_tiles)
+                    elif ' ' in remaining_tiles:
+                        remaining_tiles.remove(' ')
             col += col_delta
             row += row_delta
 
