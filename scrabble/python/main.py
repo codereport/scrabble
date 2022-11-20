@@ -662,6 +662,7 @@ class MyGame(arcade.Window):
                         self.letters_bingoed = self.letters_bingoed.union(self.letters_typed.keys())
                         self.just_bingoed    = True
                     self.letters_typed.clear()
+                    self.hook_letters.clear()
 
     def is_playable(self):
         return self.is_playable_and_score_and_word().is_ok()
