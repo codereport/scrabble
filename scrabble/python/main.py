@@ -146,7 +146,7 @@ def deltas(dir):
     col_delta = 0 if dir == Direction.DOWN else 1
     return (row_delta, col_delta)
 
-def extension_tiles(ext, board, dir, row, col):
+def extension_tiles(ext, board, dir, row, col, blank_poss):
     delta_factor         = -1 if ext == Extension.PREFIX else 1
     row_delta, col_delta = tuple(delta_factor * i for i in list(deltas(dir)))
     next_row, next_col, tiles, score = row, col, '', 0
@@ -156,16 +156,17 @@ def extension_tiles(ext, board, dir, row, col):
         pos = (next_row, next_col)
         if board.is_filled(pos):
             tiles += board.tile(pos)
-            score += TILE_SCORE.get(board.tile(pos))
+            if (14 - next_row, next_col) not in blank_poss:
+                score += TILE_SCORE.get(board.tile(pos))
         else:
             break
     return (tiles[::delta_factor], score)
 
-def prefix_tiles(board, dir, row, col):
-    return extension_tiles(Extension.PREFIX, board, dir, row, col)
+def prefix_tiles(board, dir, row, col, blank_poss):
+    return extension_tiles(Extension.PREFIX, board, dir, row, col, blank_poss)
 
-def suffix_tiles(board, dir, row, col):
-    return extension_tiles(Extension.SUFFIX, board, dir, row, col)
+def suffix_tiles(board, dir, row, col, blank_poss):
+    return extension_tiles(Extension.SUFFIX, board, dir, row, col, blank_poss)
 
 def word_score(board, dictionary, letters, pos, first_call, blank_poss):
     dir, row, col = pos.dir, 14 - pos.row, pos.col
@@ -175,7 +176,7 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
     if len([1 for c in rest_of_row if c == '.']) < len(letters):
         return Err('outside of board')
 
-    word_played, score   = prefix_tiles(board, dir, row, col)
+    word_played, score   = prefix_tiles(board, dir, row, col, blank_poss)
     has_prefix           = len(word_played) > 0
     word_mult            = 1
     row_delta, col_delta = deltas(dir)
@@ -214,7 +215,7 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
         row += row_delta
         col += col_delta
 
-    suffix, suffix_score = suffix_tiles(board, dir, row - row_delta, col - col_delta)
+    suffix, suffix_score = suffix_tiles(board, dir, row - row_delta, col - col_delta, blank_poss)
     word_played         += suffix
     has_suffix           = len(suffix) > 0
 
@@ -471,7 +472,7 @@ class MyGame(arcade.Window):
         # TODO fix the 14 - row
         row, col             = 14 - play.pos.row, play.pos.col
         row_delta, col_delta = deltas(play.pos.dir)
-        prefix, _            = prefix_tiles(self.grid, play.pos.dir, row, col)
+        prefix, _            = prefix_tiles(self.grid, play.pos.dir, row, col, self.blank_letters)
         remaining_tiles      = tiles
         word                 = play.word
         for letter in word.removeprefix(prefix):
@@ -632,7 +633,7 @@ class MyGame(arcade.Window):
                 self.grid = self.grid_backup.copy()
                 self.cursor.x = min(14, self.cursor.x)
                 self.cursor.y = max(0, self.cursor.y)
-                self.blank_letters = self.blank_letters.union(self.temp_blank_letters)
+                self.blank_letters = self.blank_letters | self.temp_blank_letters
                 self.temp_blank_letters.clear()
 
             else:
@@ -673,7 +674,7 @@ class MyGame(arcade.Window):
             dir     = self.cursor.dir.get()
             pos     = Position(dir, start_row, start_col) # start row is super hacky
             letters = ''.join(self.letters_typed.values())
-            return word_score(self.grid, self.trie, letters, pos, True, self.temp_blank_letters)
+            return word_score(self.grid, self.trie, letters, pos, True, self.temp_blank_letters | self.blank_letters)
         return Err('no letters typed')
 
     def generate_all_plays(self, tiles):
