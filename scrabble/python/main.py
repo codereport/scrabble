@@ -28,6 +28,8 @@ MARGIN       = 5   # This sets the margin between each cell and on the edges of 
 BOTTOM_MARGIN = 100
 RIGHT_MARGIN  = 400
 
+FONT = 'mono'
+
 SCREEN_WIDTH  = (WIDTH + MARGIN)  * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT    + MARGIN + BOTTOM_MARGIN
 SCREEN_TITLE  = "HookStar 🏴‍☠️⭐"
@@ -303,12 +305,12 @@ class MyGame(arcade.Window):
         arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
         if not self.just_bingoed and pos in self.letters_bingoed:
             arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
-        arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name='mono')
+        arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name=FONT)
         # if letter.isupper():
         #     value = TILE_SCORE[letter.upper()]
         #     font_size = 5  if value == 10 else 10
         #     offset    = 25 if value == 10 else 27
-        #     arcade.draw_text(value, x-HORIZ_TEXT_OFFSET + offset, y-VERT_TEXT_OFFSET - 6, arcade.color.WHITE, font_size, bold=True, font_name='mono')
+        #     arcade.draw_text(value, x-HORIZ_TEXT_OFFSET + offset, y-VERT_TEXT_OFFSET - 6, arcade.color.WHITE, font_size, bold=True, font_name=FONT)
 
     def on_draw(self):
         """Render the screen"""
@@ -346,7 +348,7 @@ class MyGame(arcade.Window):
                     letters = self.hook_letters[pos]
                     xd, yd = 0, 0
                     for letter in letters:
-                        arcade.draw_text(letter, x - WIDTH / 2.35 + xd, y + HEIGHT / 3.4 - yd, text_color, 10, bold=True, font_name='mono')
+                        arcade.draw_text(letter, x - WIDTH / 2.35 + xd, y + HEIGHT / 3.4 - yd, text_color, 10, bold=True, font_name=FONT)
                         xd += 12
                         if xd == 48:
                             xd  = 0
@@ -367,7 +369,7 @@ class MyGame(arcade.Window):
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
         score = f"{self.player.score} ({self.player.last_word_score})"
-        arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name='mono')
+        arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
 
         # Draw pink score box (for computer)
         column = 15
@@ -377,7 +379,7 @@ class MyGame(arcade.Window):
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
         score = f"{self.computer.score} ({self.computer.last_word_score})"
-        arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name='mono')
+        arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
 
         # Draw top word boxes
         for row in range(ROW_COUNT - 1):
@@ -401,7 +403,7 @@ class MyGame(arcade.Window):
             if render_row in self.player_words_found or self.phase == Phase.PAUSE_FOR_ANALYSIS:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
                 display = f"{render_row}: {play.word} ({play.score})"
-                arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name='mono')
+                arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
 
         # Draw tile rack
         tiles_left = list(self.letters_typed.values())
@@ -423,11 +425,11 @@ class MyGame(arcade.Window):
         # Draw word definition
         x = 12 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
         y = 50
-        arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + 20, arcade.color.WHITE, 9, font_name='mono')
+        arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + 20, arcade.color.WHITE, 9, font_name=FONT)
 
         left     = max(0, 100 - self.tile_bag_index + len(self.computer.tiles))
         tile_bag = ' '.join(f"{a}:{b}" for a,b in sorted(Counter(TILE_BAG[self.tile_bag_index:] + self.computer.tiles).items()))
-        arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name='mono')
+        arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name=FONT)
 
         # COMPUTER LOGIC
         if self.phase == Phase.COMPUTERS_TURN:
