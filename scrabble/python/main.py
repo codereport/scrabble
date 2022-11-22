@@ -4,6 +4,7 @@ HookStar Scrabble Trainer
 Started from https://arcade.academy/examples/array_backed_grid.html#array-backed-grid
 """
 
+import os
 import random           # shuffle
 import itertools as it  # permutations
 import arcade
@@ -28,7 +29,7 @@ MARGIN       = 5   # This sets the margin between each cell and on the edges of 
 BOTTOM_MARGIN = 100
 RIGHT_MARGIN  = 400
 
-FONT = 'mono'
+FONT = 'mono' if os.name == 'posix' else 'consolas'
 
 SCREEN_WIDTH  = (WIDTH + MARGIN)  * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT    + MARGIN + BOTTOM_MARGIN
