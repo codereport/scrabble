@@ -13,7 +13,7 @@
         <img src="https://img.shields.io/twitter/follow/code_report.svg?style=social&label=@code_report" /></a>
 </p>
 
-![image](https://user-images.githubusercontent.com/36027403/195234531-096bb1e5-f773-4b02-afd0-b14d4a3f779f.png)
+![image](https://user-images.githubusercontent.com/36027403/203172953-de794379-4e67-4568-a620-39ea04104286.png)
 
 ### Scrabble Dictionaries
 
@@ -32,5 +32,5 @@ NWL is a modified / extended version of OSPD and is used by the North American S
 
 For Python, you need to install the following with `pip3`:
 ```py
-pip3 install arcade more_itertools numpy result optional.py joblib
+pip3 install arcade more_itertools numpy result optional.py
 ```
