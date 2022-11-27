@@ -101,10 +101,11 @@ class Phase(Enum):
 
 @dataclass(frozen=True, order=True)
 class Play():
-    score:  int
-    word:   str
-    pos:    Position
-    blanks: set()
+    score:    int
+    word:     str
+    pos:      Position
+    is_bingo: bool
+    blanks:   set()
 
 class Cursor():
     def __init__(self):
@@ -186,6 +187,7 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
     crosses              = len(word_played) > 0
     valid_start          = False
     blanks               = set()
+    letters_played       = 0
 
     perpandicular_words = []
 
@@ -197,8 +199,9 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
             row        += row_delta
             col        += col_delta
             crosses     = True
-        word_played += letter
-        word_mult   *= word_multiplier(row, col)
+        letters_played += 1
+        word_played    += letter
+        word_mult      *= word_multiplier(row, col)
         if (14 - row, col) not in blank_poss:
             score += TILE_SCORE.get(letter) * letter_multiplier(row, col)
         else:
@@ -253,7 +256,7 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
     if not dictionary.is_word(word_played) and not (len(word_played) == 1 and len(perpandicular_words)):
         return Err(f"{word_played} not in dictionary")
 
-    return Ok(Play(score, word_played, pos, blanks))
+    return Ok(Play(score, word_played, pos, letters_played == 7, blanks))
 
 class MyGame(arcade.Window):
     """Main application class"""
@@ -302,6 +305,7 @@ class MyGame(arcade.Window):
         self.blank_letters        = set()
         self.just_bingoed         = False
         self.definition           = ''
+        self.game_over            = False
 
     def draw_letter(self, letter, x, y, color, pos):
         arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
@@ -433,6 +437,20 @@ class MyGame(arcade.Window):
         tile_bag = ' '.join(f"{a}:{b}" for a,b in sorted(Counter(TILE_BAG[self.tile_bag_index:] + self.computer.tiles).items()))
         arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name=FONT)
 
+        if self.game_over:
+            return
+
+        if len(self.player.tiles) == 0 or len(self.computer.tiles) == 0:
+            self.game_over = True
+            if len(self.computer.tiles):
+                extra_points = 2 * sum(TILE_SCORE.get(c) for c in self.computer.tiles)
+                self.player.score += extra_points
+            else:
+                extra_points = 2 * sum(TILE_SCORE.get(c) for c in self.player.tiles)
+                self.computer.score += extra_points
+            print(f"{extra_points=}")
+            print("GAME OVER")
+
         # COMPUTER LOGIC
         if self.phase == Phase.COMPUTERS_TURN:
             sorted_words = self.generate_all_plays(self.computer.tiles)
@@ -443,7 +461,7 @@ class MyGame(arcade.Window):
 
             # this was copied
             tiles_needed = 7 - len(self.computer.tiles)
-            if tiles_needed == 7:
+            if play.is_bingo:
                 self.letters_bingoed = self.letters_bingoed.union(self.letters_to_highlight)
             self.computer.tiles += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
             self.tile_bag_index += tiles_needed
@@ -662,7 +680,7 @@ class MyGame(arcade.Window):
                     self.phase                  = Phase.PAUSE_FOR_ANALYSIS
                     self.grid_backup            = self.grid.copy()
                     self.cursor.dir             = Optional.empty()
-                    if tiles_needed == 7:
+                    if play.is_bingo:
                         self.letters_bingoed = self.letters_bingoed.union(self.letters_typed.keys())
                         self.just_bingoed    = True
                     self.letters_typed.clear()
