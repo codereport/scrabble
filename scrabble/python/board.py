@@ -25,7 +25,7 @@ class Board:
         return '\n'.join(''.join(x if x != '.' else '_' for x in row) for row in self._tiles)
 
     def all_positions(self):
-        return it.product(range(0, 15), range(0,15))
+        return it.product(range(0, self.size), range(0, self.size))
 
     def tile(self, pos):
         row, col = pos
