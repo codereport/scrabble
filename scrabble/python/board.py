@@ -19,7 +19,7 @@ class Position():
 class Board:
     def __init__(self):
         self.size = 15
-        self._tiles = [['.'] * self.size for i in range(self.size)]
+        self._tiles = [['.'] * self.size] * self.size
 
     def __str__(self):
         return '\n'.join(''.join(x if x != '.' else '_' for x in row) for row in self._tiles)
