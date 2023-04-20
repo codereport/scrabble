@@ -4,11 +4,13 @@ import copy
 import itertools as it
 
 from dataclasses import dataclass
-from enum        import IntEnum
+from enum import IntEnum
+
 
 class Direction(IntEnum):
     ACROSS = 1
-    DOWN   = 2
+    DOWN = 2
+
 
 @dataclass(frozen=True, order=True)
 class Position():
@@ -16,10 +18,11 @@ class Position():
     row: int
     col: int
 
+
 class Board:
     def __init__(self):
         self.size = 15
-        self._tiles = [['.'] * self.size] * self.size
+        self._tiles = [['.'] * self.size for i in range(self.size)]
 
     def __str__(self):
         return '\n'.join(''.join(x if x != '.' else '_' for x in row) for row in self._tiles)
