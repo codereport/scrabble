@@ -31,6 +31,17 @@ NWL is a modified / extended version of OSPD and is used by the North American S
 ### Building
 
 For Python, you need to install the following with `pip3`:
-```py
+```sh
 pip3 install arcade more_itertools numpy result optional.py
 ```
+
+### Running
+
+```sh
+cd scrabble/scrabble/python
+python3 main.py
+```
+
+### Demo
+
+You can see a short demo from [7:46-11:19](https://youtu.be/nXZQfdxWgh0?t=466) of my Beautiful Python Refactoring II talk.
