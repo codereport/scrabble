@@ -83,6 +83,12 @@ COLOR_TRIPLE_LETTER = ( 58, 156, 184)
 COLOR_DOUBLE_WORD   = (250, 187, 170)
 COLOR_DOUBLE_LETTER = (189, 215, 214)
 
+DEBUG = True
+
+def log(msg: str):
+    if DEBUG:
+        print(f"DEBUG: {msg}")
+
 ## Enumerators & Helper Classes
 
 class Hooks(Enum):
@@ -658,8 +664,10 @@ class MyGame(arcade.Window):
                 self.temp_blank_letters.clear()
 
             else:
+                assert self.phase == Phase.PLAYERS_TURN
                 potential_play = self.is_playable_and_score_and_word()
                 if potential_play.is_ok():
+                    log("word is ok")
                     play                        = potential_play.unwrap()
                     self.player.score          += play.score
                     self.player.last_word_score = play.score
@@ -667,6 +675,8 @@ class MyGame(arcade.Window):
                     if self.player_words_found:
                         # TODO: is this if statement needed
                         self.player.word_ranks.append(min(self.player_words_found))
+                    else:
+                        breakpoint()
                     print(('{:.1f}'.format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
 
                     for (row, col), letter in self.letters_typed.items():
