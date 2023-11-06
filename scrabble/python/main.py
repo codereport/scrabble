@@ -5,18 +5,18 @@ Started from https://arcade.academy/examples/array_backed_grid.html#array-backed
 """
 
 import os
-import random           # shuffle
-import itertools as it  # permutations
-import arcade
-
-from result      import Ok, Err
-from optional    import Optional
-from enum        import Enum
+import random  # shuffle
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from board       import Board, Position, Direction
-from solver      import SolverState
-from trie        import nwl_2020
+from enum import Enum
+
+import arcade
+from optional import Optional
+from result import Err, Ok
+
+from board import Board, Direction, Position
+from solver import SolverState
+from trie import nwl_2020
 
 ## Constants
 
@@ -29,7 +29,7 @@ MARGIN       = 5   # This sets the margin between each cell and on the edges of 
 BOTTOM_MARGIN = 100
 RIGHT_MARGIN  = 400
 
-FONT = 'mono' if os.name == 'posix' else 'consolas'
+FONT = "mono" if os.name == "posix" else "consolas"
 
 SCREEN_WIDTH  = (WIDTH + MARGIN)  * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT    + MARGIN + BOTTOM_MARGIN
@@ -63,15 +63,15 @@ BOARD = [[Tl.TW, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.TW, Tl.NO, Tl.NO, 
          [Tl.TW, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.TW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.TW]]
 
 TILE_SCORE = {
-    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4,  'G': 2,  'H': 4, 'I': 1, 'J': 8,
-    'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3,  'Q': 10, 'R': 1, 'S': 1, 'T': 1,
-    'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10, ' ': 0 }
+    "A": 1, "B": 3, "C": 3, "D": 2, "E": 1, "F": 4,  "G": 2,  "H": 4, "I": 1, "J": 8,
+    "K": 5, "L": 1, "M": 3, "N": 1, "O": 1, "P": 3,  "Q": 10, "R": 1, "S": 1, "T": 1,
+    "U": 1, "V": 4, "W": 4, "X": 8, "Y": 4, "Z": 10, " ": 0 }
 
 TILE_BAG = \
-    ['A'] * 9 + ['B'] * 2 + ['C'] * 2 + ['D'] * 4 + ['E'] * 12 + ['F'] * 2 + ['G'] * 3 + \
-    ['H'] * 2 + ['I'] * 9 + ['J'] * 1 + ['K'] * 1 + ['L'] * 4  + ['M'] * 2 + ['N'] * 6 + \
-    ['O'] * 8 + ['P'] * 2 + ['Q'] * 1 + ['R'] * 6 + ['S'] * 4  + ['T'] * 6 + ['U'] * 4 + \
-    ['V'] * 2 + ['W'] * 2 + ['X'] * 1 + ['Y'] * 2 + ['Z'] * 1  + [' '] * 2
+    ["A"] * 9 + ["B"] * 2 + ["C"] * 2 + ["D"] * 4 + ["E"] * 12 + ["F"] * 2 + ["G"] * 3 + \
+    ["H"] * 2 + ["I"] * 9 + ["J"] * 1 + ["K"] * 1 + ["L"] * 4  + ["M"] * 2 + ["N"] * 6 + \
+    ["O"] * 8 + ["P"] * 2 + ["Q"] * 1 + ["R"] * 6 + ["S"] * 4  + ["T"] * 6 + ["U"] * 4 + \
+    ["V"] * 2 + ["W"] * 2 + ["X"] * 1 + ["Y"] * 2 + ["Z"] * 1  + [" "] * 2
 
 LR_ARROW_KEYS = [arcade.key.LEFT, arcade.key.RIGHT]
 UD_ARROW_KEYS = [arcade.key.UP, arcade.key.DOWN]
@@ -106,14 +106,14 @@ class Phase(Enum):
     COMPUTERS_TURN     = 3
 
 @dataclass(frozen=True, order=True)
-class Play():
+class Play:
     score:    int
     word:     str
     pos:      Position
     is_bingo: bool
     blanks:   set()
 
-class Cursor():
+class Cursor:
     def __init__(self):
         self.dir = Optional.empty()
         self.x   = 7
@@ -124,7 +124,7 @@ class Cursor():
         elif self.dir.get() == Direction.ACROSS: self.dir = Optional.of(Direction.DOWN)
         else:                                    self.dir = Optional.empty()
 
-class Player():
+class Player:
     def __init__(self, tiles):
         self.tiles           = tiles
         self.score           = 0
@@ -159,7 +159,7 @@ def deltas(dir):
 def extension_tiles(ext, board, dir, row, col, blank_poss):
     delta_factor         = -1 if ext == Extension.PREFIX else 1
     row_delta, col_delta = tuple(delta_factor * i for i in list(deltas(dir)))
-    next_row, next_col, tiles, score = row, col, '', 0
+    next_row, next_col, tiles, score = row, col, "", 0
     while True:
         next_row += row_delta
         next_col += col_delta
@@ -181,10 +181,10 @@ def suffix_tiles(board, dir, row, col, blank_poss):
 def word_score(board, dictionary, letters, pos, first_call, blank_poss):
     dir, row, col = pos.dir, 14 - pos.row, pos.col
     if board.is_filled((row, col)):
-        return Err('cannot start word on existing tile')
+        return Err("cannot start word on existing tile")
     rest_of_row = board._tiles[row][col:] if dir == Direction.ACROSS else list(zip(*board._tiles))[col][row:]
-    if len([1 for c in rest_of_row if c == '.']) < len(letters):
-        return Err('outside of board')
+    if len([1 for c in rest_of_row if c == "."]) < len(letters):
+        return Err("outside of board")
 
     word_played, score   = prefix_tiles(board, dir, row, col, blank_poss)
     has_prefix           = len(word_played) > 0
@@ -242,9 +242,9 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
     if not crosses and len(suffix) == 0 and len(perpandicular_words) == 0 and first_call:
         if board.is_first_turn():
             if not valid_start:
-                return Err('first move must be through center tile')
+                return Err("first move must be through center tile")
         else:
-            return Err('does not overlap with any other word')
+            return Err("does not overlap with any other word")
 
     if first_call:
         opposite_dir = Direction.ACROSS if dir == Direction.DOWN else Direction.DOWN
@@ -298,10 +298,10 @@ class MyGame(arcade.Window):
         self.display_hook_letters = Hooks.OFF
 
         self.DEFINITIONS = dict()
-        with open('../dictionary/nwl_2020.txt') as f:
+        with open("../dictionary/nwl_2020.txt") as f:
             for line in f:
                 words = line.strip().split()
-                self.DEFINITIONS[words[0]] = ' '.join(words[1:])
+                self.DEFINITIONS[words[0]] = " ".join(words[1:])
         self.trie = nwl_2020()
 
         self.letters_typed        = {}
@@ -310,7 +310,7 @@ class MyGame(arcade.Window):
         self.temp_blank_letters   = set()
         self.blank_letters        = set()
         self.just_bingoed         = False
-        self.definition           = ''
+        self.definition           = ""
         self.game_over            = False
 
     def draw_letter(self, letter, x, y, color, pos):
@@ -319,10 +319,6 @@ class MyGame(arcade.Window):
             arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
         arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name=FONT)
         # if letter.isupper():
-        #     value = TILE_SCORE[letter.upper()]
-        #     font_size = 5  if value == 10 else 10
-        #     offset    = 25 if value == 10 else 27
-        #     arcade.draw_text(value, x-HORIZ_TEXT_OFFSET + offset, y-VERT_TEXT_OFFSET - 6, arcade.color.WHITE, font_size, bold=True, font_name=FONT)
 
     def on_draw(self):
         """Render the screen"""
@@ -348,7 +344,7 @@ class MyGame(arcade.Window):
 
                 if   self.grid.is_filled(bpos): letter = self.grid.tile(bpos)
                 elif pos in self.letters_typed: letter = self.letters_typed.get(pos)
-                else:                           letter = ' '
+                else:                           letter = " "
 
                 blank = pos in self.temp_blank_letters | self.blank_letters
                 if blank:
@@ -368,7 +364,7 @@ class MyGame(arcade.Window):
 
         # Draw cursor
         if self.cursor.dir.is_present() and len(self.letters_typed) == 0:
-            arrow = '→' if self.cursor.dir.get() == Direction.ACROSS else '↓'
+            arrow = "→" if self.cursor.dir.get() == Direction.ACROSS else "↓"
             x = (MARGIN + WIDTH)  * self.cursor.x + MARGIN + WIDTH  // 2
             y = (MARGIN + HEIGHT) * self.cursor.y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             self.draw_letter(arrow, x, y, arcade.color.BLACK, None)
@@ -424,7 +420,7 @@ class MyGame(arcade.Window):
             if self.phase == Phase.PLAYERS_TURN and tile in tiles_left:
                 color = played_tile_color
                 tiles_left.remove(tile)
-            elif self.phase == Phase.PLAYERS_TURN and blanks_typed > 0 and tile == ' ':
+            elif self.phase == Phase.PLAYERS_TURN and blanks_typed > 0 and tile == " ":
                 color = played_tile_color
                 blanks_typed -= 1
             else:
@@ -440,7 +436,7 @@ class MyGame(arcade.Window):
         arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + 20, arcade.color.WHITE, 9, font_name=FONT)
 
         left     = max(0, 100 - self.tile_bag_index + len(self.computer.tiles))
-        tile_bag = ' '.join(f"{a}:{b}" for a,b in sorted(Counter(TILE_BAG[self.tile_bag_index:] + self.computer.tiles).items()))
+        tile_bag = " ".join(f"{a}:{b}" for a,b in sorted(Counter(TILE_BAG[self.tile_bag_index:] + self.computer.tiles).items()))
         arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name=FONT)
 
         if self.game_over:
@@ -487,9 +483,9 @@ class MyGame(arcade.Window):
 
     def recursive_definition(self, word, num):
         definition = self.DEFINITIONS[word.upper()]
-        if definition[0] not in ['<', '{']:
+        if definition[0] not in ["<", "{"]:
             return definition
-        redirect_word = definition.split('=')[0][1:]
+        redirect_word = definition.split("=")[0][1:]
         # in case there is infinite recursion, break
         if num > 10:
             return definition
@@ -509,8 +505,8 @@ class MyGame(arcade.Window):
                 if remaining_tiles:
                     if letter in remaining_tiles:
                         remaining_tiles.remove(letter)
-                    elif ' ' in remaining_tiles:
-                        remaining_tiles.remove(' ')
+                    elif " " in remaining_tiles:
+                        remaining_tiles.remove(" ")
             col += col_delta
             row += row_delta
 
@@ -576,12 +572,12 @@ class MyGame(arcade.Window):
             letter = chr(key - 32)
             letters_remaining = self.player.tiles.copy()
             for c in self.letters_typed.values():
-                to_remove = c if c in letters_remaining else ' '
+                to_remove = c if c in letters_remaining else " "
                 letters_remaining.remove(to_remove)
             need_blank = False
-            if letter not in letters_remaining and ' ' in letters_remaining:
+            if letter not in letters_remaining and " " in letters_remaining:
                 need_blank = True
-                letters_remaining.remove(' ')
+                letters_remaining.remove(" ")
                 letters_remaining.append(letter)
 
             if letter in letters_remaining:
@@ -677,11 +673,11 @@ class MyGame(arcade.Window):
                         self.player.word_ranks.append(min(self.player_words_found))
                     else:
                         breakpoint()
-                    print(('{:.1f}'.format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
+                    print(("{:.1f}".format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
 
                     for (row, col), letter in self.letters_typed.items():
                         if (row, col) in self.temp_blank_letters:
-                            self.player.tiles.remove(' ')
+                            self.player.tiles.remove(" ")
                         else:
                             self.player.tiles.remove(letter)
                         self.grid.set_tile((14-row, col), letter)
@@ -706,9 +702,9 @@ class MyGame(arcade.Window):
             start_row, start_col = next(iter(self.letters_typed))
             dir     = self.cursor.dir.get()
             pos     = Position(dir, start_row, start_col) # start row is super hacky
-            letters = ''.join(self.letters_typed.values())
+            letters = "".join(self.letters_typed.values())
             return word_score(self.grid, self.trie, letters, pos, True, self.temp_blank_letters | self.blank_letters)
-        return Err('no letters typed')
+        return Err("no letters typed")
 
     def generate_all_plays(self, tiles):
         plays = SolverState(self.trie, self.grid, tiles).find_all_options()

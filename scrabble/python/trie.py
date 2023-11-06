@@ -31,7 +31,7 @@ class Trie:
         return word_node.is_word
 
 def nwl_2020():
-    with open('../dictionary/nwl_2020.txt', 'rt') as file:
+    with open("../dictionary/nwl_2020.txt") as file:
         words = []
         for line in file:
             word = line.strip().split()[0]

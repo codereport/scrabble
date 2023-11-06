@@ -1,7 +1,9 @@
 # Inital code taken from https://github.com/boringcactus/Appel-Jacobson-scrabble/blob/canon/board.py
 
-from board import Position, Direction
 from collections import defaultdict
+
+from board import Direction, Position
+
 
 class SolverState:
     def __init__(self, dictionary, board, rack):
@@ -55,7 +57,7 @@ class SolverState:
                 if letter in letters_remaining:
                     letters_remaining.remove(letter)
                 else:
-                    letters_remaining.remove(' ')
+                    letters_remaining.remove(" ")
                     blanks.add((14 - row, col))
             if word_idx == 0:
                 pos = Position(dir=self.direction, row=row, col=col)
@@ -89,10 +91,10 @@ class SolverState:
                 scan_pos = self.after_cross(scan_pos)
                 letters_after = letters_after + self.board.tile(scan_pos)
             if len(letters_before) == 0 and len(letters_after) == 0:
-                legal_here = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+                legal_here = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
             else:
                 legal_here = set()
-                for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+                for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
                     word_formed = letters_before + letter + letters_after
                     if self.dictionary.is_word(word_formed):
                         legal_here.add(letter)
@@ -117,8 +119,8 @@ class SolverState:
         self.extend_after(partial_word, current_node, anchor_pos, False)
         if limit > 0:
             for next_letter in current_node.children.keys():
-                if next_letter in self.rack or ' ' in self.rack:
-                    letter_to_add_back = next_letter if next_letter in self.rack else ' '
+                if next_letter in self.rack or " " in self.rack:
+                    letter_to_add_back = next_letter if next_letter in self.rack else " "
                     self.rack.remove(letter_to_add_back)
                     self.before_part(
                         partial_word + next_letter,
@@ -135,8 +137,8 @@ class SolverState:
         if self.board.in_bounds(next_pos):
             if self.board.is_empty(next_pos):
                 for next_letter in current_node.children.keys():
-                    if (next_letter in self.rack or ' ' in self.rack) and next_letter in self.cross_check_results[next_pos]:
-                        letter_to_add_back = next_letter if next_letter in self.rack else ' '
+                    if (next_letter in self.rack or " " in self.rack) and next_letter in self.cross_check_results[next_pos]:
+                        letter_to_add_back = next_letter if next_letter in self.rack else " "
                         self.rack.remove(letter_to_add_back)
                         self.extend_after(
                             partial_word + next_letter,
