@@ -664,7 +664,9 @@ class MyGame(arcade.Window):
                     self.player.score          += play.score
                     self.player.last_word_score = play.score
 
-                    self.player.word_ranks.append(min(self.player_words_found))
+                    if self.player_words_found:
+                        # TODO: is this if statement needed
+                        self.player.word_ranks.append(min(self.player_words_found))
                     print(('{:.1f}'.format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
 
                     for (row, col), letter in self.letters_typed.items():
