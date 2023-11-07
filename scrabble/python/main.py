@@ -5,7 +5,8 @@ Started from https://arcade.academy/examples/array_backed_grid.html#array-backed
 """
 
 import os
-import random  # shuffle
+import random
+import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from enum import Enum
@@ -302,6 +303,16 @@ class MyGame(arcade.Window):
             for line in f:
                 words = line.strip().split()
                 self.DEFINITIONS[words[0]] = " ".join(words[1:])
+
+        # this is a set of words that the computer can't play
+        # it forces the computer to use words you don't know so
+        # you can expand your vocabulary
+        self.KNOW = set()
+        with open("know.txt") as f:
+            for line in f:
+                word = line.strip()
+                self.KNOW.add(word)
+
         self.trie = nwl_2020()
 
         self.letters_typed        = {}
@@ -440,6 +451,11 @@ class MyGame(arcade.Window):
         arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name=FONT)
 
         if self.game_over:
+            os.remove("know.txt")
+            f = open("know.txt", "x")
+            f.write("\n".join(self.KNOW))
+            f.close()
+            sys.exit()
             return
 
         if len(self.player.tiles) == 0 or len(self.computer.tiles) == 0:
@@ -456,7 +472,19 @@ class MyGame(arcade.Window):
         # COMPUTER LOGIC
         if self.phase == Phase.COMPUTERS_TURN:
             sorted_words = self.generate_all_plays(self.computer.tiles)
-            play         = sorted_words[-3] # COMPUTER DIFFICULTY
+
+            i = -1
+            while sorted_words[i].word in self.KNOW:
+                i -= 1
+                log(f"skip {sorted_words[i].word} ({i})")
+            play  = sorted_words[i]
+
+            # add computers played word to dictionary if you know it
+            if play.word not in self.KNOW:
+                know = input(f"Do you know: {play.word}? ")
+                if know.lower() == "y":
+                    self.KNOW.add(play.word)
+
             self.blank_letters = self.blank_letters | play.blanks
 
             self.computer.tiles = self.play_word(play, self.computer.tiles)
