@@ -453,8 +453,9 @@ class MyGame(arcade.Window):
         if self.game_over:
             os.remove("know.txt")
             f = open("know.txt", "x")
-            f.write("\n".join(self.KNOW))
+            f.write("\n".join(sorted(list(self.KNOW))))
             f.close()
+            _ = input('Press ENTER to exit.')
             sys.exit()
             return
 
