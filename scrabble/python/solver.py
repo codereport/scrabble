@@ -19,29 +19,25 @@ class SolverState:
         row, col = pos
         if self.direction == Direction.ACROSS:
             return row, col - 1
-        else:
-            return row - 1, col
+        return row - 1, col
 
     def after(self, pos):
         row, col = pos
         if self.direction == Direction.ACROSS:
             return row, col + 1
-        else:
-            return row + 1, col
+        return row + 1, col
 
     def before_cross(self, pos):
         row, col = pos
         if self.direction == Direction.ACROSS:
             return row - 1, col
-        else:
-            return row, col - 1
+        return row, col - 1
 
     def after_cross(self, pos):
         row, col = pos
         if self.direction == Direction.ACROSS:
             return row + 1, col
-        else:
-            return row, col + 1
+        return row, col + 1
 
     def legal_move(self, word, last_pos):
         play_pos = last_pos

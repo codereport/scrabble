@@ -415,7 +415,7 @@ class MyGame(arcade.Window):
                 color = arcade.color.YELLOW
             else:
                 color = arcade.color.LIGHT_GRAY
-            TOP_WORD_BOX_WIDTH = (MARGIN // 2 + (WIDTH * 3.5)) * 2
+            TOP_WORD_BOX_WIDTH = (MARGIN // 2 + (WIDTH * 3.5)) * 2 # noqa: N806
             x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
             y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
@@ -633,9 +633,8 @@ class MyGame(arcade.Window):
                         self.player_words_found.add(rank)
                         self.player_scores_found.add(play.score)
                         self.definition = self.recursive_definition(play.word, 1)
-                    except:
-                        print("FAIL!")
-                        print(play)
+                    except Exception:
+                        log(f"failed to play: {play}")
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
