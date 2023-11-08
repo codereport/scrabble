@@ -88,13 +88,21 @@ COLOR_TRIPLE_LETTER = ( 58, 156, 184)
 COLOR_DOUBLE_WORD   = (250, 187, 170)
 COLOR_DOUBLE_LETTER = (189, 215, 214)
 
+## Enumerators & Helper Classes
+
+class LogType(Enum):
+    FAIL = 0,
+    INFO = 1, 
+    OK = 2
+
 DEBUG = True
 
-def log(msg: str):
+def log(msg: str, type: LogType):
     if DEBUG:
-        print(Fore.RED + "DEBUG: "+ Style.RESET_ALL + msg)
-
-## Enumerators & Helper Classes
+        if type == LogType.FAIL: color = Fore.RED
+        if type == LogType.INFO: color = Fore.YELLOW
+        if type == LogType.OK:   color = Fore.GREEN
+        print(color + "DEBUG: "+ Style.RESET_ALL + msg)
 
 class Hooks(Enum):
     OFF     = 0
@@ -481,7 +489,7 @@ class MyGame(arcade.Window):
             i = -1
             while sorted_words[i].word in self.KNOW:
                 i -= 1
-                log(f"skip {sorted_words[i].word} ({i})")
+                log(f"skip {sorted_words[i].word} ({i})", LogType.INFO)
             play  = sorted_words[i]
 
             # add computers played word to dictionary if you know it
@@ -507,12 +515,10 @@ class MyGame(arcade.Window):
 
             self.last_grid = self.grid.copy()
 
-            print(self.player.score, self.computer.score)
-
         # PLAYER WORD SOLVER
         if (self.phase == Phase.PLAYERS_TURN and not self.player_plays):
             self.player_plays = self.generate_all_plays(self.player.tiles)
-            print("Done generating plays")
+            log("Done generating plays", LogType.OK)
 
     def recursive_definition(self, word, num):
         definition = self.DEFINITIONS[word.upper()]
@@ -560,7 +566,7 @@ class MyGame(arcade.Window):
         self.cursor.y = row
         self.cursor.rotate_dir()
 
-        print(f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})")
+        log(f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})", LogType.OK)
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key"""
@@ -639,7 +645,7 @@ class MyGame(arcade.Window):
                         self.player_scores_found.add(play.score)
                         self.definition = self.recursive_definition(play.word, 1)
                     except Exception:
-                        log(f"failed to play: {play}")
+                        log(f"failed to play: {play}", LogType.FAIL)
 
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
@@ -695,7 +701,7 @@ class MyGame(arcade.Window):
                 assert self.phase == Phase.PLAYERS_TURN
                 potential_play = self.is_playable_and_score_and_word()
                 if potential_play.is_ok():
-                    log("word is ok")
+                    log("word is ok", LogType.OK)
                     play                        = potential_play.unwrap()
                     self.player.score          += play.score
                     self.player.last_word_score = play.score
