@@ -12,12 +12,16 @@ from dataclasses import dataclass
 from enum import Enum
 
 import arcade
+from colorama import Fore, Style, init
 from optional import Optional
 from result import Err, Ok
 
 from board import Board, Direction, Position
 from solver import SolverState
 from trie import nwl_2020
+
+# Initialize colorama
+init(autoreset=True)
 
 ## Constants
 
@@ -88,7 +92,7 @@ DEBUG = True
 
 def log(msg: str):
     if DEBUG:
-        print(f"DEBUG: {msg}")
+        print(Fore.RED + "DEBUG: "+ Style.RESET_ALL + msg)
 
 ## Enumerators & Helper Classes
 
