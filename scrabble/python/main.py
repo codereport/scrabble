@@ -14,6 +14,7 @@ from enum import Enum
 
 import arcade
 from colorama import Fore, Style, init
+from numpy import sign
 from optional import Optional
 from result import Err, Ok
 
@@ -403,7 +404,8 @@ class MyGame(arcade.Window):
         # Draw blue score boxes (for player)
         column = 15
         row    = 14
-        color  = COLOR_DOUBLE_LETTER
+        diff   = self.player.score - self.computer.score
+        color  = [arcade.color.HOT_PINK, arcade.color.YELLOW, arcade.color.DARK_PASTEL_GREEN][1 + sign(diff)]
         x = (MARGIN + WIDTH)  * column + MARGIN * 2 + SCORE_BOX_WIDTH // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, SCORE_BOX_WIDTH, HEIGHT, color)
@@ -413,7 +415,8 @@ class MyGame(arcade.Window):
         # Draw pink score box (for computer)
         column = 15
         row    = 14
-        color  = COLOR_DOUBLE_WORD
+        diff   = self.computer.score - self.player.score
+        color  = [arcade.color.HOT_PINK, arcade.color.YELLOW, arcade.color.DARK_PASTEL_GREEN][1 + sign(diff)]
         x = (MARGIN + WIDTH)  * column + (MARGIN + SCORE_BOX_WIDTH) + MARGIN * 2 + SCORE_BOX_WIDTH // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
         arcade.draw_rectangle_filled(x, y, SCORE_BOX_WIDTH, HEIGHT, color)
