@@ -431,7 +431,7 @@ class MyGame(arcade.Window):
                 continue
             column = 15
             play = self.player_plays[-render_row]
-            if self.phase == Phase.PAUSE_FOR_ANALYSIS and self.pause_for_analysis_rank == render_row:
+            if self.phase in [Phase.PAUSE_FOR_ANALYSIS, Phase.FINAL_SCORE] and self.pause_for_analysis_rank == render_row:
                 color = arcade.color.HOT_PINK
             elif render_row in self.player_words_found:
                 color = arcade.color.DARK_PASTEL_GREEN
@@ -442,7 +442,7 @@ class MyGame(arcade.Window):
             x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
             y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
-            if render_row in self.player_words_found or self.phase == Phase.PAUSE_FOR_ANALYSIS:
+            if render_row in self.player_words_found or self.phase in [Phase.PAUSE_FOR_ANALYSIS, Phase.FINAL_SCORE]:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
                 display = f"{render_row}: {play.word} ({play.score})"
                 arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
@@ -549,7 +549,7 @@ class MyGame(arcade.Window):
         # PLAYER WORD SOLVER
         if (self.phase == Phase.PLAYERS_TURN and not self.player_plays):
             self.player_plays = self.generate_all_plays(self.player.tiles)
-            log("Done generating plays", LogType.OK)
+            log("done generating plays", LogType.OK)
 
     def recursive_definition(self, word, num):
         definition = self.DEFINITIONS[word.upper()]
@@ -597,14 +597,14 @@ class MyGame(arcade.Window):
         self.cursor.y = row
         self.cursor.rotate_dir()
 
-        log(f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})", LogType.OK)
+        log(f"click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})", LogType.OK)
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key"""
 
         if key in ARROW_KEYS:
             if not self.letters_typed:
-                if self.phase == Phase.PAUSE_FOR_ANALYSIS:
+                if self.phase in [Phase.PAUSE_FOR_ANALYSIS, Phase.FINAL_SCORE]:
                     if self.pause_for_analysis_rank is None:
                         self.pause_for_analysis_rank = 1
                     elif key == arcade.key.UP:
