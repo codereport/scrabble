@@ -7,9 +7,8 @@ def load(path):
             d.add(line.strip().split()[0])
     return d
 
-opsd = load('opsd_4th_ed.txt')
-# nwl  = load('nwl_2018.txt')
-nwl  = load('otcwl_2016.txt')
+opsd = load("opsd_4th_ed.txt")
+nwl  = load("otcwl_2016.txt")
 
 diff = 0
 for w in nwl:

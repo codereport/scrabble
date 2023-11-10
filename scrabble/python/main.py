@@ -4,6 +4,8 @@ HookStar Scrabble Trainer
 Started from https://arcade.academy/examples/array_backed_grid.html#array-backed-grid
 """
 
+# -*- coding: utf-8 -*-
+
 import os
 import random
 import sys
@@ -15,6 +17,7 @@ import arcade
 from colorama import Fore, Style, init
 from optional import Optional
 from result import Err, Ok
+import textwrap
 
 from board import Board, Direction, Position
 from solver import SolverState
@@ -32,9 +35,10 @@ HEIGHT       = 50  # Grid height
 MARGIN       = 5   # This sets the margin between each cell and on the edges of the screen.
 
 BOTTOM_MARGIN = 100
-RIGHT_MARGIN  = 400
+RIGHT_MARGIN  = 800
 
-FONT = "mono" if os.name == "posix" else "consolas"
+#FONT = "mono" if os.name == "posix" else "consolas"
+FONT = "jetbrains mono"
 
 SCREEN_WIDTH  = (WIDTH + MARGIN)  * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT    + MARGIN + BOTTOM_MARGIN
@@ -92,7 +96,7 @@ COLOR_DOUBLE_LETTER = (189, 215, 214)
 
 class LogType(Enum):
     FAIL = 0,
-    INFO = 1, 
+    INFO = 1,
     OK = 2
 
 DEBUG = True
@@ -145,6 +149,11 @@ class Player:
         self.last_word_score = 0
 
 ## Free functions
+
+def word_wrap_split(text: str, line_length: int):
+    wrapper = textwrap.TextWrapper(width=line_length)
+    lines = wrapper.wrap(text)
+    return lines
 
 def letter_multiplier(row, col):
     if BOARD[row][col] == Tl.DL: return 2
@@ -456,11 +465,23 @@ class MyGame(arcade.Window):
         # Draw word definition
         x = 12 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
         y = 50
-        arcade.draw_text(self.definition, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + 20, arcade.color.WHITE, 9, font_name=FONT)
+        emoji = ""
+        if "fish"     in self.definition: emoji = "🐟 "
+        if "tree"     in self.definition: emoji = "🌲 "
+        if "insect"   in self.definition: emoji = "🐛 "
+        if "plant"    in self.definition: emoji = "🌱 "
+        if "monetary" in self.definition: emoji = "💲 "
+        if "bird"     in self.definition: emoji = "🐦 "
+
+        lines = word_wrap_split(f"{emoji}{self.definition}", 80)
+        for i, line in enumerate(lines):
+            arcade.draw_text(line, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + (25 * (1 - i)), arcade.color.WHITE, 15, font_name=FONT, bold=True)
 
         left     = max(0, 100 - self.tile_bag_index + len(self.computer.tiles))
         tile_bag = " ".join(f"{a}:{b}" for a,b in sorted(Counter(TILE_BAG[self.tile_bag_index:] + self.computer.tiles).items()))
-        arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 9, font_name=FONT)
+        x = 21 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
+        y = 500
+        arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 15, font_name=FONT, bold=True)
 
         if self.game_over:
             os.remove("know.txt")
@@ -709,9 +730,9 @@ class MyGame(arcade.Window):
                     if self.player_words_found:
                         # TODO: is this if statement needed
                         self.player.word_ranks.append(min(self.player_words_found))
+                        print(("{:.1f}".format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
                     else:
                         breakpoint()
-                    print(("{:.1f}".format(sum(self.player.word_ranks) / len(self.player.word_ranks))), self.player.word_ranks)
 
                     for (row, col), letter in self.letters_typed.items():
                         if (row, col) in self.temp_blank_letters:
