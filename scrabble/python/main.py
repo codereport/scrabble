@@ -4,12 +4,11 @@ HookStar Scrabble Trainer
 Started from https://arcade.academy/examples/array_backed_grid.html#array-backed-grid
 """
 
-# -*- coding: utf-8 -*-
-
 import os
 import random
 import sys
-from collections import Counter, defaultdict
+import textwrap
+from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
 
@@ -17,7 +16,6 @@ import arcade
 from colorama import Fore, Style, init
 from optional import Optional
 from result import Err, Ok
-import textwrap
 
 from board import Board, Direction, Position
 from solver import SolverState
@@ -34,11 +32,13 @@ WIDTH        = 50  # Grid width
 HEIGHT       = 50  # Grid height
 MARGIN       = 5   # This sets the margin between each cell and on the edges of the screen.
 
+SCORE_BOX_WIDTH    = WIDTH * 3.5
+TOP_WORD_BOX_WIDTH = MARGIN + SCORE_BOX_WIDTH * 2
+
 BOTTOM_MARGIN = 100
 RIGHT_MARGIN  = 800
 
-#FONT = "mono" if os.name == "posix" else "consolas"
-FONT = "jetbrains mono"
+FONT = "consolas"
 
 SCREEN_WIDTH  = (WIDTH + MARGIN)  * COLUMN_COUNT + MARGIN + RIGHT_MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT    + MARGIN + BOTTOM_MARGIN
@@ -152,8 +152,7 @@ class Player:
 
 def word_wrap_split(text: str, line_length: int):
     wrapper = textwrap.TextWrapper(width=line_length)
-    lines = wrapper.wrap(text)
-    return lines
+    return wrapper.wrap(text)
 
 def letter_multiplier(row, col):
     if BOARD[row][col] == Tl.DL: return 2
@@ -405,9 +404,9 @@ class MyGame(arcade.Window):
         column = 15
         row    = 14
         color  = COLOR_DOUBLE_LETTER
-        x = (MARGIN + WIDTH)  * column + MARGIN * 2 + (WIDTH * 3.5)  // 2
+        x = (MARGIN + WIDTH)  * column + MARGIN * 2 + SCORE_BOX_WIDTH // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
-        arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
+        arcade.draw_rectangle_filled(x, y, SCORE_BOX_WIDTH, HEIGHT, color)
         score = f"{self.player.score} ({self.player.last_word_score})"
         arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
 
@@ -415,9 +414,9 @@ class MyGame(arcade.Window):
         column = 15
         row    = 14
         color  = COLOR_DOUBLE_WORD
-        x = (MARGIN + WIDTH)  * column + (MARGIN + (WIDTH * 3.5)) + MARGIN * 2 + (WIDTH * 3.5)  // 2
+        x = (MARGIN + WIDTH)  * column + (MARGIN + SCORE_BOX_WIDTH) + MARGIN * 2 + SCORE_BOX_WIDTH // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
-        arcade.draw_rectangle_filled(x, y, WIDTH * 3.5, HEIGHT, color)
+        arcade.draw_rectangle_filled(x, y, SCORE_BOX_WIDTH, HEIGHT, color)
         score = f"{self.computer.score} ({self.computer.last_word_score})"
         arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
 
@@ -436,7 +435,6 @@ class MyGame(arcade.Window):
                 color = arcade.color.YELLOW
             else:
                 color = arcade.color.LIGHT_GRAY
-            TOP_WORD_BOX_WIDTH = (MARGIN // 2 + (WIDTH * 3.5)) * 2 # noqa: N806
             x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
             y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
@@ -444,6 +442,22 @@ class MyGame(arcade.Window):
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
                 display = f"{render_row}: {play.word} ({play.score})"
                 arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
+
+        # Draw remaining tiles
+        tiles_left = sorted(TILE_BAG[self.tile_bag_index:] + self.computer.tiles)
+        row, column = 14, 15
+        for i, tile in enumerate(tiles_left):
+            if i != 0 and i % 7 == 0:
+                row -= 1
+                column = 15 + (column - 15) % 7
+            color = arcade.color.DARK_PASTEL_GREEN
+            if tile in "AEIOU": color = arcade.color.HOT_PINK
+            if tile == " ":     color = arcade.color.AMETHYST
+            x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH + (6 * MARGIN)
+            y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
+            arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
+            arcade.draw_text(tile, x-HORIZ_TEXT_OFFSET+5, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
+            column += 1
 
         # Draw tile rack
         tiles_left = list(self.letters_typed.values())
@@ -476,12 +490,6 @@ class MyGame(arcade.Window):
         lines = word_wrap_split(f"{emoji}{self.definition}", 80)
         for i, line in enumerate(lines):
             arcade.draw_text(line, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + (25 * (1 - i)), arcade.color.WHITE, 15, font_name=FONT, bold=True)
-
-        left     = max(0, 100 - self.tile_bag_index + len(self.computer.tiles))
-        tile_bag = " ".join(f"{a}:{b}" for a,b in sorted(Counter(TILE_BAG[self.tile_bag_index:] + self.computer.tiles).items()))
-        x = 21 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
-        y = 500
-        arcade.draw_text(f"{left} {tile_bag}", x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, 15, font_name=FONT, bold=True)
 
         if self.game_over:
             os.remove("know.txt")
