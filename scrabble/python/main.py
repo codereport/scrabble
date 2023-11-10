@@ -73,7 +73,7 @@ BOARD = [[Tl.TW, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.TW, Tl.NO, Tl.NO, 
          [Tl.TW, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.NO, Tl.TW, Tl.NO, Tl.NO, Tl.NO, Tl.DL, Tl.NO, Tl.NO, Tl.TW]]
 
 TILE_SCORE = {
-    "A": 1, "B": 3, "C": 3, "D": 2, "E": 1, "F": 4,  "G": 2,  "H": 4, "I": 1, "J": 8,
+    "A": 1, "B": 3, "C": 3, "D": 2, "E": 1, "F": 4,  "G": 2,  "H": 4, "I": 1, "J": 8 ,
     "K": 5, "L": 1, "M": 3, "N": 1, "O": 1, "P": 3,  "Q": 10, "R": 1, "S": 1, "T": 1,
     "U": 1, "V": 4, "W": 4, "X": 8, "Y": 4, "Z": 10, " ": 0 }
 
@@ -122,6 +122,8 @@ class Phase(Enum):
     PLAYERS_TURN       = 1
     PAUSE_FOR_ANALYSIS = 2
     COMPUTERS_TURN     = 3
+    FINAL_SCORE        = 4
+    EXIT               = 5
 
 @dataclass(frozen=True, order=True)
 class Play:
@@ -343,7 +345,6 @@ class MyGame(arcade.Window):
         self.blank_letters        = set()
         self.just_bingoed         = False
         self.definition           = ""
-        self.game_over            = False
 
     def draw_letter(self, letter, x, y, color, pos):
         arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
@@ -494,17 +495,10 @@ class MyGame(arcade.Window):
         for i, line in enumerate(lines):
             arcade.draw_text(line, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + (25 * (1 - i)), arcade.color.WHITE, 15, font_name=FONT, bold=True)
 
-        if self.game_over:
-            os.remove("know.txt")
-            f = open("know.txt", "x")
-            f.write("\n".join(sorted(list(self.KNOW))))
-            f.close()
-            _ = input("Press ENTER to exit.")
-            sys.exit()
-            return
-
-        if len(self.player.tiles) == 0 or len(self.computer.tiles) == 0:
-            self.game_over = True
+        ## extra points
+        if self.phase not in [Phase.FINAL_SCORE, Phase.EXIT] and (len(self.player.tiles) == 0 or len(self.computer.tiles) == 0):
+            self.phase = Phase.FINAL_SCORE
+            print(self.phase)
             if len(self.computer.tiles):
                 extra_points = 2 * sum(TILE_SCORE.get(c) for c in self.computer.tiles)
                 self.player.score += extra_points
@@ -513,6 +507,11 @@ class MyGame(arcade.Window):
                 self.computer.score += extra_points
             print(f"{extra_points=}")
             print("GAME OVER")
+            print("Press ENTER to exit.")
+
+        if self.phase == Phase.EXIT:
+            sys.exit()
+            return
 
         # COMPUTER LOGIC
         if self.phase == Phase.COMPUTERS_TURN:
@@ -520,9 +519,9 @@ class MyGame(arcade.Window):
 
             i = -1
             while sorted_words[i].word in self.KNOW:
+                log(f"skip {sorted_words[i].word} ({abs(i)})", LogType.INFO)
                 i -= 1
-                log(f"skip {sorted_words[i].word} ({i})", LogType.INFO)
-            play  = sorted_words[i]
+            play = sorted_words[i]
 
             # add computers played word to dictionary if you know it
             if play.word not in self.KNOW:
@@ -713,6 +712,13 @@ class MyGame(arcade.Window):
                 self.display_hook_letters = Hooks.OFF
 
         if key == arcade.key.ENTER:
+            if self.phase == Phase.FINAL_SCORE:
+                self.phase = Phase.EXIT
+                os.remove("know.txt")
+                f = open("know.txt", "x")
+                f.write("\n".join(sorted(list(self.KNOW))))
+                f.close()
+
             if self.phase == Phase.PAUSE_FOR_ANALYSIS:
                 self.phase                   = Phase.COMPUTERS_TURN
                 self.pause_for_analysis_rank = None
@@ -729,8 +735,7 @@ class MyGame(arcade.Window):
                 self.blank_letters = self.blank_letters | self.temp_blank_letters
                 self.temp_blank_letters.clear()
 
-            else:
-                assert self.phase == Phase.PLAYERS_TURN
+            if self.phase == Phase.PLAYERS_TURN:
                 potential_play = self.is_playable_and_score_and_word()
                 if potential_play.is_ok():
                     log("word is ok", LogType.OK)
