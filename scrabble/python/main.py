@@ -18,7 +18,7 @@ from numpy import sign
 from result import Err, Ok
 
 from board import Board, Direction, Position
-from solver import SolverState
+from solver import SolverState, CellCoord
 from trie import nwl_2020
 
 from typing import Optional, Tuple, Set
@@ -132,7 +132,7 @@ class Play:
     word:     str
     pos:      Position
     is_bingo: bool
-    blanks:   Set[Tuple[int, int]]
+    blanks:   Set[CellCoord]
 
 class Cursor:
     x: int
@@ -294,6 +294,10 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
 
 class MyGame(arcade.Window):
     """Main application class"""
+    grid: Board
+    grid_backup: Board
+    last_grid: Board
+    cursor: Cursor
 
     def __init__(self, width, height, title):
         """Set up the application"""

@@ -1,3 +1,4 @@
+# type: ignore
 
 d = set()
 with open("dictionary_scrabble.txt") as f:

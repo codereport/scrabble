@@ -2,11 +2,24 @@
 
 from collections import defaultdict
 
-from board import Direction, Position
+from board import Direction, Position, Board
+from trie import Trie
+
+from typing import Optional, List, Tuple, Set, Any
+
+
+CellCoord = Tuple[int, int]
 
 
 class SolverState:
-    def __init__(self, dictionary, board, rack):
+    board: Board
+    # rack: ???
+    # original_rack: ???
+    # cross_check_results: ???
+    direction: Optional[Direction]
+    plays: List[Any]  # This should be better defined: List[Tuple[Position, str, Set[CellCoord]]] or List[Play] as defined in main.py???
+
+    def __init__(self, dictionary: Trie, board: Board, rack): # What is the type of rack?
         self.dictionary = dictionary
         self.board = board
         self.original_rack = rack.copy()
@@ -39,11 +52,11 @@ class SolverState:
             return row + 1, col
         return row, col + 1
 
-    def legal_move(self, word, last_pos):
+    def legal_move(self, word, last_pos: CellCoord):
         play_pos = last_pos
         word_idx = len(word) - 1
         letters_actually_played = ""
-        blanks = set()
+        blanks: Set[CellCoord] = set()
         letters_remaining = self.original_rack.copy()
         while word_idx >= 0:
             if self.board.is_empty(play_pos):
@@ -56,6 +69,8 @@ class SolverState:
                     letters_remaining.remove(" ")
                     blanks.add((14 - row, col))
             if word_idx == 0:
+                assert self.direction is not None # if check_untyped_defs is active, then mypy warns: dir might be None in the construction of Position below
+                                                  # we get rid of this warning by adding the assert
                 pos = Position(dir=self.direction, row=row, col=col)
                 self.plays.append((pos, letters_actually_played[::-1], blanks))
             word_idx -= 1
