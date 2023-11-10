@@ -2,13 +2,10 @@
 
 from collections import defaultdict
 
-from board import Direction, Position, Board
-from trie import Trie
+from board import Direction, Position, Board, CellCoord, Letter
+from trie import Trie, TrieNode
 
-from typing import Optional, List, Tuple, Set, Any
-
-
-CellCoord = Tuple[int, int]
+from typing import Optional, List, Set, Any, Dict
 
 
 class SolverState:
@@ -28,31 +25,31 @@ class SolverState:
         self.direction = None
         self.plays = []
 
-    def before(self, pos):
+    def before(self, pos: CellCoord) -> CellCoord:
         row, col = pos
         if self.direction == Direction.ACROSS:
             return row, col - 1
         return row - 1, col
 
-    def after(self, pos):
+    def after(self, pos: CellCoord) -> CellCoord:
         row, col = pos
         if self.direction == Direction.ACROSS:
             return row, col + 1
         return row + 1, col
 
-    def before_cross(self, pos):
+    def before_cross(self, pos: CellCoord) -> CellCoord:
         row, col = pos
         if self.direction == Direction.ACROSS:
             return row - 1, col
         return row, col - 1
 
-    def after_cross(self, pos):
+    def after_cross(self, pos: CellCoord) -> CellCoord:
         row, col = pos
         if self.direction == Direction.ACROSS:
             return row + 1, col
         return row, col + 1
 
-    def legal_move(self, word, last_pos: CellCoord):
+    def legal_move(self, word: str, last_pos: CellCoord) -> None:
         play_pos = last_pos
         word_idx = len(word) - 1
         letters_actually_played = ""
@@ -76,7 +73,7 @@ class SolverState:
             word_idx -= 1
             play_pos = self.before(play_pos)
 
-    def cross_check_for_display(self, on_rack):
+    def cross_check_for_display(self, on_rack: bool): # -> ??? Dict[CellCoord, Set[str]] ???
         self.direction = Direction.ACROSS
         a = self.cross_check()
         self.direction = Direction.DOWN
@@ -86,8 +83,8 @@ class SolverState:
             result[pos] = a[pos] & b[pos] & set(self.rack) if on_rack else a[pos] & b[pos]
         return result
 
-    def cross_check(self):
-        result = dict()
+    def cross_check(self) -> Dict[CellCoord, Set[Letter]]:
+        result: Dict[CellCoord, Set[Letter]] = dict()
         for pos in self.board.all_positions():
             if self.board.is_filled(pos):
                 result[pos] = set()
@@ -112,7 +109,7 @@ class SolverState:
             result[pos] = legal_here
         return result
 
-    def find_anchors(self):
+    def find_anchors(self) -> List[CellCoord]:
         if self.board.is_first_turn():
             return [(7, 7)]
         anchors = []
@@ -126,7 +123,7 @@ class SolverState:
                 anchors.append(pos)
         return anchors
 
-    def before_part(self, partial_word, current_node, anchor_pos, limit):
+    def before_part(self, partial_word: str, current_node: TrieNode, anchor_pos: CellCoord, limit: int) -> None:
         self.extend_after(partial_word, current_node, anchor_pos, False)
         if limit > 0:
             for next_letter in current_node.children.keys():
@@ -141,13 +138,14 @@ class SolverState:
                     )
                     self.rack.append(letter_to_add_back)
 
-    def extend_after(self, partial_word, current_node, next_pos, anchor_filled):
+    def extend_after(self, partial_word: str, current_node: TrieNode, next_pos: CellCoord, anchor_filled: bool) -> None:
         if (self.board.is_empty(next_pos) or not self.board.in_bounds(next_pos)) and \
             current_node.is_word and anchor_filled:
             self.legal_move(partial_word, self.before(next_pos))
         if self.board.in_bounds(next_pos):
             if self.board.is_empty(next_pos):
                 for next_letter in current_node.children.keys():
+                    assert self.cross_check_results is not None  # make mypy happy about the next line
                     if (next_letter in self.rack or " " in self.rack) and next_letter in self.cross_check_results[next_pos]:
                         letter_to_add_back = next_letter if next_letter in self.rack else " "
                         self.rack.remove(letter_to_add_back)

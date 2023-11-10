@@ -21,7 +21,10 @@ from board import Board, Direction, Position
 from solver import SolverState, CellCoord
 from trie import nwl_2020
 
-from typing import Optional, Tuple, Set
+from board import Board, Direction, Position, CellCoord, Letter
+from typing import Optional, Set, List, Tuple
+
+Color = Tuple[int, int, int]
 
 # Initialize colorama
 init(autoreset=True)
@@ -149,6 +152,10 @@ class Cursor:
         else:                              self.dir = None
 
 class Player:
+    tiles:          List[Letter]
+    score:          int
+    #word_ranks:    List[???]
+    last_word_score: int
     def __init__(self, tiles):
         self.tiles           = tiles
         self.score           = 0
@@ -161,17 +168,17 @@ def word_wrap_split(text: str, line_length: int):
     wrapper = textwrap.TextWrapper(width=line_length)
     return wrapper.wrap(text)
 
-def letter_multiplier(row, col):
+def letter_multiplier(row: int, col: int) -> int:
     if BOARD[row][col] == Tl.DL: return 2
     if BOARD[row][col] == Tl.TL: return 3
     return 1
 
-def word_multiplier(row, col):
+def word_multiplier(row: int, col: int) -> int:
     if BOARD[row][col] == Tl.DW: return 2
     if BOARD[row][col] == Tl.TW: return 3
     return 1
 
-def tile_color(pos):
+def tile_color(pos: CellCoord) -> Color:
     row, col = pos
     if BOARD[row][col] == Tl.DL: return COLOR_DOUBLE_LETTER
     if BOARD[row][col] == Tl.DW: return COLOR_DOUBLE_WORD
@@ -179,7 +186,7 @@ def tile_color(pos):
     if BOARD[row][col] == Tl.TW: return COLOR_TRIPLE_WORD
     return COLOR_NORMAL
 
-def deltas(dir):
+def deltas(dir) -> Tuple[int, int]:
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
     return (row_delta, col_delta)
