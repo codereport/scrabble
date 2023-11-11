@@ -1,4 +1,4 @@
-
+# type: ignore
 
 def load(path):
     d = set()

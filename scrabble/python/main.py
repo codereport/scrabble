@@ -15,12 +15,16 @@ from enum import Enum
 import arcade
 from colorama import Fore, Style, init
 from numpy import sign
-from optional import Optional
 from result import Err, Ok
 
 from board import Board, Direction, Position
-from solver import SolverState
+from solver import SolverState, CellCoord
 from trie import nwl_2020
+
+from board import Board, Direction, Position, CellCoord, Letter
+from typing import Optional, Set, List, Tuple
+
+Color = Tuple[int, int, int]
 
 # Initialize colorama
 init(autoreset=True)
@@ -131,20 +135,27 @@ class Play:
     word:     str
     pos:      Position
     is_bingo: bool
-    blanks:   set()
+    blanks:   Set[CellCoord]
 
 class Cursor:
+    x: int
+    y: int
+    dir: Optional[Direction]
     def __init__(self):
-        self.dir = Optional.empty()
+        self.dir = None
         self.x   = 7
         self.y   = 7
 
     def rotate_dir(self):
-        if   self.dir.is_empty():                self.dir = Optional.of(Direction.ACROSS)
-        elif self.dir.get() == Direction.ACROSS: self.dir = Optional.of(Direction.DOWN)
-        else:                                    self.dir = Optional.empty()
+        if   self.dir is None:             self.dir = Direction.ACROSS
+        elif self.dir == Direction.ACROSS: self.dir = Direction.DOWN
+        else:                              self.dir = None
 
 class Player:
+    tiles:          List[Letter]
+    score:          int
+    #word_ranks:    List[???]
+    last_word_score: int
     def __init__(self, tiles):
         self.tiles           = tiles
         self.score           = 0
@@ -157,17 +168,17 @@ def word_wrap_split(text: str, line_length: int):
     wrapper = textwrap.TextWrapper(width=line_length)
     return wrapper.wrap(text)
 
-def letter_multiplier(row, col):
+def letter_multiplier(row: int, col: int) -> int:
     if BOARD[row][col] == Tl.DL: return 2
     if BOARD[row][col] == Tl.TL: return 3
     return 1
 
-def word_multiplier(row, col):
+def word_multiplier(row: int, col: int) -> int:
     if BOARD[row][col] == Tl.DW: return 2
     if BOARD[row][col] == Tl.TW: return 3
     return 1
 
-def tile_color(pos):
+def tile_color(pos: CellCoord) -> Color:
     row, col = pos
     if BOARD[row][col] == Tl.DL: return COLOR_DOUBLE_LETTER
     if BOARD[row][col] == Tl.DW: return COLOR_DOUBLE_WORD
@@ -175,7 +186,7 @@ def tile_color(pos):
     if BOARD[row][col] == Tl.TW: return COLOR_TRIPLE_WORD
     return COLOR_NORMAL
 
-def deltas(dir):
+def deltas(dir) -> Tuple[int, int]:
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
     return (row_delta, col_delta)
@@ -290,6 +301,10 @@ def word_score(board, dictionary, letters, pos, first_call, blank_poss):
 
 class MyGame(arcade.Window):
     """Main application class"""
+    grid: Board
+    grid_backup: Board
+    last_grid: Board
+    cursor: Cursor
 
     def __init__(self, width, height, title):
         """Set up the application"""
@@ -396,8 +411,8 @@ class MyGame(arcade.Window):
                             yd += 11
 
         # Draw cursor
-        if self.cursor.dir.is_present() and len(self.letters_typed) == 0:
-            arrow = "→" if self.cursor.dir.get() == Direction.ACROSS else "↓"
+        if self.cursor.dir is not None and len(self.letters_typed) == 0:
+            arrow = "→" if self.cursor.dir == Direction.ACROSS else "↓"
             x = (MARGIN + WIDTH)  * self.cursor.x + MARGIN + WIDTH  // 2
             y = (MARGIN + HEIGHT) * self.cursor.y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             self.draw_letter(arrow, x, y, arcade.color.BLACK, None)
@@ -617,21 +632,21 @@ class MyGame(arcade.Window):
                     self.play_word(self.player_plays[-self.pause_for_analysis_rank], None)
 
                 else:
-                    if self.cursor.dir.is_empty():
-                        self.cursor.dir = Optional.of(Direction.ACROSS)
+                    if self.cursor.dir is None:
+                        self.cursor.dir = Direction.ACROSS
                     else:
                         if modifiers == arcade.key.MOD_CTRL:
-                            self.cursor.dir = Optional.of(Direction.ACROSS if key in LR_ARROW_KEYS else Direction.DOWN)
+                            self.cursor.dir = Direction.ACROSS if key in LR_ARROW_KEYS else Direction.DOWN
                             xd = -1 if key == arcade.key.LEFT else 1 if key == arcade.key.RIGHT else 0
                             yd = -1 if key == arcade.key.DOWN else 1 if key == arcade.key.UP    else 0
                             while self.grid.is_empty((14 - (self.cursor.y + yd), self.cursor.x + xd)):
                                 self.cursor.x += xd
                                 self.cursor.y += yd
                         else:
-                            if key in LR_ARROW_KEYS and self.cursor.dir.get() == Direction.DOWN:
-                                self.cursor.dir = Optional.of(Direction.ACROSS)
-                            elif key in UD_ARROW_KEYS and self.cursor.dir.get() == Direction.ACROSS:
-                                self.cursor.dir = Optional.of(Direction.DOWN)
+                            if key in LR_ARROW_KEYS and self.cursor.dir == Direction.DOWN:
+                                self.cursor.dir = Direction.ACROSS
+                            elif key in UD_ARROW_KEYS and self.cursor.dir == Direction.ACROSS:
+                                self.cursor.dir = Direction.DOWN
                             else:
                                 if key == arcade.key.LEFT:  self.cursor.x = max( 0, self.cursor.x - 1)
                                 if key == arcade.key.RIGHT: self.cursor.x = min(14, self.cursor.x + 1)
@@ -652,19 +667,19 @@ class MyGame(arcade.Window):
 
             if letter in letters_remaining:
                 while self.grid.is_filled((14-self.cursor.y, self.cursor.x)):
-                    if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
-                    if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
+                    if self.cursor.dir == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
+                    if self.cursor.dir == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
                 if not (self.cursor.x > 14 or self.cursor.y < 0):
                     self.letters_typed[(self.cursor.y, self.cursor.x)] = letter
                     if need_blank:
                         self.temp_blank_letters.add((self.cursor.y, self.cursor.x))
-                    if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
-                    if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
+                    if self.cursor.dir == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
+                    if self.cursor.dir == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
                 while self.grid.is_filled((14-self.cursor.y, self.cursor.x)):
-                    if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
-                    if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
+                    if self.cursor.dir == Direction.ACROSS: self.cursor.x = min(15, self.cursor.x + 1)
+                    if self.cursor.dir == Direction.DOWN:   self.cursor.y = max(-1, self.cursor.y - 1)
 
                 potential_play = self.is_playable_and_score_and_word()
                 print(potential_play)
@@ -687,11 +702,11 @@ class MyGame(arcade.Window):
         if key == arcade.key.BACKSPACE:
             if len(self.letters_typed):
                 self.letters_typed.popitem()
-                if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x -= 1
-                if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y += 1
+                if self.cursor.dir == Direction.ACROSS: self.cursor.x -= 1
+                if self.cursor.dir == Direction.DOWN:   self.cursor.y += 1
                 while self.grid.is_filled((14-self.cursor.y, self.cursor.x)):
-                    if self.cursor.dir.get() == Direction.ACROSS: self.cursor.x -= 1
-                    if self.cursor.dir.get() == Direction.DOWN:   self.cursor.y += 1
+                    if self.cursor.dir == Direction.ACROSS: self.cursor.x -= 1
+                    if self.cursor.dir == Direction.DOWN:   self.cursor.y += 1
                 pos = (self.cursor.y, self.cursor.x)
                 if pos in self.temp_blank_letters:
                     self.temp_blank_letters.remove(pos)
@@ -762,7 +777,7 @@ class MyGame(arcade.Window):
                     self.tile_bag_index        += tiles_needed
                     self.phase                  = Phase.PAUSE_FOR_ANALYSIS
                     self.grid_backup            = self.grid.copy()
-                    self.cursor.dir             = Optional.empty()
+                    self.cursor.dir             = None
                     if play.is_bingo:
                         self.letters_bingoed = self.letters_bingoed.union(self.letters_typed.keys())
                         self.just_bingoed    = True
@@ -775,7 +790,7 @@ class MyGame(arcade.Window):
     def is_playable_and_score_and_word(self):
         if len(self.letters_typed):
             start_row, start_col = next(iter(self.letters_typed))
-            dir     = self.cursor.dir.get()
+            dir     = self.cursor.dir
             pos     = Position(dir, start_row, start_col) # start row is super hacky
             letters = "".join(self.letters_typed.values())
             return word_score(self.grid, self.trie, letters, pos, True, self.temp_blank_letters | self.blank_letters)
