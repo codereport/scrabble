@@ -5,12 +5,9 @@ import itertools as it
 from dataclasses import dataclass
 from enum import IntEnum
 
-from typing import List, NewType, Tuple
-
-
 Letter= str # synonym for str, but make it clear that it's a letter
 
-CellCoord = Tuple[int, int]
+CellCoord = tuple[int, int]
 
 
 class Direction(IntEnum):
@@ -27,7 +24,7 @@ class Position:
 
 class Board:
     size: int
-    _tiles: List[List[Letter]]
+    _tiles: list[list[Letter]]
 
     def __init__(self) -> None:
         self.size = 15
@@ -36,7 +33,7 @@ class Board:
     def __str__(self) -> str:
         return "\n".join("".join(x if x != "." else "_" for x in row) for row in self._tiles)
 
-    def all_positions(self) -> List[CellCoord]:
+    def all_positions(self) -> list[CellCoord]:
         return list(it.product(range(0, self.size), range(0, self.size)))
 
     def tile(self, pos: CellCoord) -> Letter:

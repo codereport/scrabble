@@ -1,11 +1,10 @@
 # Inital code taken from https://github.com/boringcactus/Appel-Jacobson-scrabble/blob/canon/board.py
 
 from collections import defaultdict
+from typing import Any
 
-from board import Direction, Position, Board, CellCoord, Letter
+from board import Board, CellCoord, Direction, Letter, Position
 from trie import Trie, TrieNode
-
-from typing import Optional, List, Set, Any, Dict
 
 
 class SolverState:
@@ -13,8 +12,8 @@ class SolverState:
     # rack: ???
     # original_rack: ???
     # cross_check_results: ???
-    direction: Optional[Direction]
-    plays: List[Any]  # This should be better defined: List[Tuple[Position, str, Set[CellCoord]]] or List[Play] as defined in main.py???
+    direction: Direction | None
+    plays: list[Any]  # This should be better defined: List[Tuple[Position, str, Set[CellCoord]]] or List[Play] as defined in main.py???
 
     def __init__(self, dictionary: Trie, board: Board, rack): # What is the type of rack?
         self.dictionary = dictionary
@@ -53,7 +52,7 @@ class SolverState:
         play_pos = last_pos
         word_idx = len(word) - 1
         letters_actually_played = ""
-        blanks: Set[CellCoord] = set()
+        blanks: set[CellCoord] = set()
         letters_remaining = self.original_rack.copy()
         while word_idx >= 0:
             if self.board.is_empty(play_pos):
@@ -83,8 +82,8 @@ class SolverState:
             result[pos] = a[pos] & b[pos] & set(self.rack) if on_rack else a[pos] & b[pos]
         return result
 
-    def cross_check(self) -> Dict[CellCoord, Set[Letter]]:
-        result: Dict[CellCoord, Set[Letter]] = dict()
+    def cross_check(self) -> dict[CellCoord, set[Letter]]:
+        result: dict[CellCoord, set[Letter]] = dict()
         for pos in self.board.all_positions():
             if self.board.is_filled(pos):
                 result[pos] = set()
@@ -109,7 +108,7 @@ class SolverState:
             result[pos] = legal_here
         return result
 
-    def find_anchors(self) -> List[CellCoord]:
+    def find_anchors(self) -> list[CellCoord]:
         if self.board.is_first_turn():
             return [(7, 7)]
         anchors = []

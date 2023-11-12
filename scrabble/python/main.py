@@ -17,14 +17,11 @@ from colorama import Fore, Style, init
 from numpy import sign
 from result import Err, Ok
 
-from board import Board, Direction, Position
-from solver import SolverState, CellCoord
+from board import Board, CellCoord, Direction, Letter, Position
+from solver import CellCoord, SolverState
 from trie import nwl_2020
 
-from board import Board, Direction, Position, CellCoord, Letter
-from typing import Optional, Set, List, Tuple
-
-Color = Tuple[int, int, int]
+Color = tuple[int, int, int]
 
 # Initialize colorama
 init(autoreset=True)
@@ -135,12 +132,12 @@ class Play:
     word:     str
     pos:      Position
     is_bingo: bool
-    blanks:   Set[CellCoord]
+    blanks:   set[CellCoord]
 
 class Cursor:
     x: int
     y: int
-    dir: Optional[Direction]
+    dir: Direction | None
     def __init__(self):
         self.dir = None
         self.x   = 7
@@ -152,7 +149,7 @@ class Cursor:
         else:                              self.dir = None
 
 class Player:
-    tiles:          List[Letter]
+    tiles:          list[Letter]
     score:          int
     #word_ranks:    List[???]
     last_word_score: int
@@ -186,7 +183,7 @@ def tile_color(pos: CellCoord) -> Color:
     if BOARD[row][col] == Tl.TW: return COLOR_TRIPLE_WORD
     return COLOR_NORMAL
 
-def deltas(dir) -> Tuple[int, int]:
+def deltas(dir) -> tuple[int, int]:
     row_delta = 1 if dir == Direction.DOWN else 0
     col_delta = 0 if dir == Direction.DOWN else 1
     return (row_delta, col_delta)
@@ -332,6 +329,7 @@ class MyGame(arcade.Window):
         self.player_plays            = []
         self.player_words_found      = set() # by rank
         self.player_scores_found     = set()
+        self.player_current_play     = Err("no play yet")
 
         self.hook_letters         = defaultdict(set)
         self.display_hook_letters = Hooks.OFF
@@ -373,7 +371,11 @@ class MyGame(arcade.Window):
 
         arcade.start_render()
 
-        played_tile_color = arcade.color.DARK_PASTEL_GREEN if self.is_playable() else arcade.color.SAE
+        if self.is_playable():
+            played_tile_color = arcade.color.DARK_PASTEL_GREEN
+        else:
+            played_tile_color = arcade.color.SAE
+            self.player_current_play = Err("not ok")
 
         # Draw the grid
         for row in range(ROW_COUNT):
@@ -417,21 +419,27 @@ class MyGame(arcade.Window):
             y = (MARGIN + HEIGHT) * self.cursor.y + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             self.draw_letter(arrow, x, y, arcade.color.BLACK, None)
 
-        # Draw blue score boxes (for player)
+        # Draw player score boxes
         column = 15
         row    = 14
-        diff   = self.player.score - self.computer.score
-        color  = [arcade.color.HOT_PINK, arcade.color.YELLOW, arcade.color.DARK_PASTEL_GREEN][1 + sign(diff)]
         x = (MARGIN + WIDTH)  * column + MARGIN * 2 + SCORE_BOX_WIDTH // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
+        additional_points = 0
+        if self.player_current_play.is_ok():
+            play = self.player_current_play.unwrap()
+            additional_points = play.score
+            score = f"{self.player.score + additional_points} ({additional_points})"
+        else:
+            score = f"{self.player.score} ({self.player.last_word_score})"
+        diff   = (self.player.score + additional_points) - self.computer.score
+        color  = [arcade.color.HOT_PINK, arcade.color.YELLOW, arcade.color.DARK_PASTEL_GREEN][1 + sign(diff)]
         arcade.draw_rectangle_filled(x, y, SCORE_BOX_WIDTH, HEIGHT, color)
-        score = f"{self.player.score} ({self.player.last_word_score})"
         arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
 
-        # Draw pink score box (for computer)
+        # Draw computer score box
         column = 15
         row    = 14
-        diff   = self.computer.score - self.player.score
+        diff   = self.computer.score - (self.player.score + additional_points)
         color  = [arcade.color.HOT_PINK, arcade.color.YELLOW, arcade.color.DARK_PASTEL_GREEN][1 + sign(diff)]
         x = (MARGIN + WIDTH)  * column + (MARGIN + SCORE_BOX_WIDTH) + MARGIN * 2 + SCORE_BOX_WIDTH // 2
         y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
@@ -683,6 +691,7 @@ class MyGame(arcade.Window):
 
                 potential_play = self.is_playable_and_score_and_word()
                 print(potential_play)
+                self.player_current_play = potential_play
                 if potential_play.is_ok():
                     play = potential_play.unwrap()
                     try:
@@ -696,6 +705,7 @@ class MyGame(arcade.Window):
         if key == arcade.key.ESCAPE:
             self.letters_typed.clear()
             self.temp_blank_letters.clear()
+            self.player_current_play = Err("no play")
             self.cursor.x = min(14, self.cursor.x)
             self.cursor.y = max(0, self.cursor.y)
 
