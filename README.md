@@ -3,7 +3,7 @@
 <p align="center">
     <a href="https://lbesson.mit-license.org/" alt="MIT license">
         <img src="https://img.shields.io/badge/License-MIT-blue.svg" /></a>    
-    <a href="https://racket-lang.org/">
+    <a href="https://www.python.org/">
         <img src="https://img.shields.io/badge/Python-3-ff69b4.svg"/></a>
     <a href="https://github.com/codereport?tab=followers" alt="GitHub followers">
         <img src="https://img.shields.io/github/followers/codereport.svg?style=social&label=Follow" /></a>
