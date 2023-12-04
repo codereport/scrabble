@@ -12,7 +12,7 @@ class SolverState:
     # rack: ???
     # original_rack: ???
     # cross_check_results: ???
-    direction: Direction | None
+    direction: Direction
     plays: list[Any]  # This should be better defined: List[Tuple[Position, str, Set[CellCoord]]] or List[Play] as defined in main.py???
 
     def __init__(self, dictionary: Trie, board: Board, rack): # What is the type of rack?
@@ -167,6 +167,8 @@ class SolverState:
 
     def find_all_options(self):
         for direction in Direction:
+            if direction == Direction.NONE:
+                continue
             self.direction = direction
             anchors = self.find_anchors()
             self.cross_check_results = self.cross_check()
