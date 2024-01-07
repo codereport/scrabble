@@ -1,3 +1,5 @@
 arcade
 colorama
+more-itertools
+numpy
 result

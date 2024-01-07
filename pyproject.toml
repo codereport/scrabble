@@ -1,0 +1,9 @@
+# TODO: This Rust flavoured Python project has a cmake flavoured layout
+# with sprinkles of information in the dictionary directory.
+# Someday python packaging will converge and this is file is us
+# singing gospel.
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "scrabble/python",
+]
