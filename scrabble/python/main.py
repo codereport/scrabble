@@ -327,6 +327,7 @@ class MyGame(arcade.Window):
         self.phase                   = Phase.PLAYERS_TURN
         self.pause_for_analysis_rank = None
         self.player_plays            = []
+        self.filtered_player_plays   = []
         self.player_words_found      = set() # by rank
         self.player_scores_found     = set()
         self.player_current_play     = Err("no play yet")
@@ -448,15 +449,21 @@ class MyGame(arcade.Window):
         arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
 
         # Draw top word boxes
-        for row in range(ROW_COUNT - 1):
+        play_index = 1
+        for row in reversed(range(ROW_COUNT - 1)):
             render_row = 14 - row # and place
             if len(self.player_plays) == 0 or render_row + 1 > len(self.player_plays):
                 continue
             column = 15
-            play = self.player_plays[-render_row]
+
+            play = self.player_plays[-play_index]
+            while len(play.blanks) > 0 and play.score < 50:
+                play_index += 1
+                play = self.player_plays[-play_index]
+
             if self.phase in [Phase.PAUSE_FOR_ANALYSIS, Phase.FINAL_SCORE] and self.pause_for_analysis_rank == render_row:
                 color = arcade.color.HOT_PINK
-            elif render_row in self.player_words_found:
+            elif play_index in self.player_words_found:
                 color = arcade.color.DARK_PASTEL_GREEN
             elif play.score in self.player_scores_found:
                 color = arcade.color.YELLOW
@@ -465,10 +472,11 @@ class MyGame(arcade.Window):
             x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
             y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
             arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
-            if render_row in self.player_words_found or self.phase in [Phase.PAUSE_FOR_ANALYSIS, Phase.FINAL_SCORE]:
+            if play_index in self.player_words_found or self.phase in [Phase.PAUSE_FOR_ANALYSIS, Phase.FINAL_SCORE]:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
                 display = f"{render_row}: {play.word} ({play.score})"
                 arcade.draw_text(display, x-HORIZ_TEXT_OFFSET-130, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
+            play_index += 1
 
         # Draw remaining tiles
         tiles_left = sorted(TILE_BAG[self.tile_bag_index:] + self.computer.tiles)
@@ -571,7 +579,8 @@ class MyGame(arcade.Window):
 
         # PLAYER WORD SOLVER
         if (self.phase == Phase.PLAYERS_TURN and not self.player_plays):
-            self.player_plays = self.generate_all_plays(self.player.tiles)
+            self.player_plays          = self.generate_all_plays(self.player.tiles)
+            self.filtered_player_plays = [word for word in self.player_plays if len(word.blanks) == 0 or word.score >= 50][-14:]
             log("done generating plays", LogType.OK)
 
     def recursive_definition(self, word, num):
@@ -637,7 +646,7 @@ class MyGame(arcade.Window):
 
                     self.grid = self.last_grid.copy()
                     self.letters_to_highlight.clear()
-                    self.play_word(self.player_plays[-self.pause_for_analysis_rank], None)
+                    self.play_word(self.filtered_player_plays[-self.pause_for_analysis_rank], None)
 
                 else:
                     if self.cursor.dir is None:
