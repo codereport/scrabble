@@ -11,6 +11,7 @@ import textwrap
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
+from tkinter import Tk, messagebox
 
 import arcade
 from colorama import Fore, Style, init
@@ -559,8 +560,9 @@ class MyGame(arcade.Window):
 
             # add computers played word to dictionary if you know it
             if play.word not in self.KNOW:
-                know = input(f"Do you know: {play.word}? ")
-                if know.lower() == "y":
+                Tk().wm_withdraw() # to hide the main window
+                response = messagebox.askyesno("", f"Do you know: {play.word}?")
+                if response == 1:
                     self.KNOW.add(play.word)
 
             self.blank_letters = self.blank_letters | play.blanks
