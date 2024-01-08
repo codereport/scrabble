@@ -524,6 +524,7 @@ class MyGame(arcade.Window):
         if "fish"     in self.definition: emoji = arcade.load_texture("../emojis/fish.png")
         if "tree"     in self.definition: emoji = arcade.load_texture("../emojis/tree.png")
         if "insect"   in self.definition: emoji = arcade.load_texture("../emojis/bug.png")
+        if "flower"   in self.definition: emoji = arcade.load_texture("../emojis/flower.png")
         if "plant"    in self.definition: emoji = arcade.load_texture("../emojis/plant.png")
         if "monetary" in self.definition: emoji = arcade.load_texture("../emojis/dollar.png")
         if "bird"     in self.definition: emoji = arcade.load_texture("../emojis/bird.png")
