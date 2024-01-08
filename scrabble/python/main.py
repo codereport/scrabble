@@ -514,15 +514,18 @@ class MyGame(arcade.Window):
         # Draw word definition
         x = 12 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
         y = 50
-        emoji = ""
-        if "fish"     in self.definition: emoji = "🐟 "
-        if "tree"     in self.definition: emoji = "🌲 "
-        if "insect"   in self.definition: emoji = "🐛 "
-        if "plant"    in self.definition: emoji = "🌱 "
-        if "monetary" in self.definition: emoji = "💲 "
-        if "bird"     in self.definition: emoji = "🐦 "
+        emoji = None
+        if "fish"     in self.definition: emoji = arcade.load_texture("../emojis/fish.png")
+        if "tree"     in self.definition: emoji = arcade.load_texture("../emojis/tree.png")
+        if "insect"   in self.definition: emoji = arcade.load_texture("../emojis/bug.png")
+        if "plant"    in self.definition: emoji = arcade.load_texture("../emojis/plant.png")
+        if "monetary" in self.definition: emoji = arcade.load_texture("../emojis/dollar.png")
+        if "bird"     in self.definition: emoji = arcade.load_texture("../emojis/bird.png")
+        if "letter"   in self.definition: emoji = arcade.load_texture("../emojis/letters.png")
 
-        lines = word_wrap_split(f"{emoji}{self.definition}", 80)
+        lines = word_wrap_split(self.definition, 80)
+        if emoji:
+            arcade.draw_texture_rectangle(x - 40, y + 18, 40, 40, emoji, 0)
         for i, line in enumerate(lines):
             arcade.draw_text(line, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET + (25 * (1 - i)), arcade.color.WHITE, 15, font_name=FONT, bold=True)
 
