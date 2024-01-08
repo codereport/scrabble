@@ -111,6 +111,10 @@ def log(msg: str, type: LogType):
         if type == LogType.OK:   color = Fore.GREEN
         print(color + "DEBUG: "+ Style.RESET_ALL + msg)
 
+class Exchange(Enum):
+    YES = 0
+    NO  = 1
+
 class Hooks(Enum):
     OFF     = 0
     ALL     = 1
@@ -319,11 +323,12 @@ class MyGame(arcade.Window):
         self.cursor = Cursor()
 
         # Setup game
-        random.shuffle(TILE_BAG)
+        self.tile_bag = TILE_BAG[:]
+        random.shuffle(self.tile_bag)
         self.tile_bag_index = 14
 
-        self.player   = Player(TILE_BAG[0: 7])
-        self.computer = Player(TILE_BAG[7:14])
+        self.player   = Player(self.tile_bag[0: 7])
+        self.computer = Player(self.tile_bag[7:14])
 
         self.phase                   = Phase.PLAYERS_TURN
         self.pause_for_analysis_rank = None
@@ -480,7 +485,7 @@ class MyGame(arcade.Window):
             play_index += 1
 
         # Draw remaining tiles
-        tiles_left = sorted(TILE_BAG[self.tile_bag_index:] + self.computer.tiles)
+        tiles_left = sorted(self.tile_bag[self.tile_bag_index:] + self.computer.tiles)
         row, column = 14, 15
         for i, tile in enumerate(tiles_left):
             if i != 0 and i % 7 == 0:
@@ -573,7 +578,7 @@ class MyGame(arcade.Window):
             tiles_needed = 7 - len(self.computer.tiles)
             if play.is_bingo:
                 self.letters_bingoed = self.letters_bingoed.union(self.letters_to_highlight)
-            self.computer.tiles += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+            self.computer.tiles += self.tile_bag[self.tile_bag_index:self.tile_bag_index + tiles_needed]
             self.tile_bag_index += tiles_needed
 
             self.computer.last_word_score = play.score
@@ -635,6 +640,24 @@ class MyGame(arcade.Window):
         self.cursor.rotate_dir()
 
         log(f"click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})", LogType.OK)
+
+    def setup_for_computers_turn(self, exchanged: Exchange):
+        self.letters_typed.clear()
+        self.phase                   = Phase.COMPUTERS_TURN
+        self.pause_for_analysis_rank = None
+        self.player_plays            = []
+        self.just_bingoed            = False
+        self.display_hook_letters    = Hooks.OFF
+        self.hook_letters.clear()
+        self.player_scores_found.clear()
+        self.player_words_found.clear()
+        self.letters_to_highlight.clear()
+        self.cursor.x = min(14, self.cursor.x)
+        self.cursor.y = max(0, self.cursor.y)
+        if exchanged == Exchange.NO:
+            self.grid = self.grid_backup.copy()
+            self.blank_letters = self.blank_letters | self.temp_blank_letters
+        self.temp_blank_letters.clear()
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key"""
@@ -750,6 +773,22 @@ class MyGame(arcade.Window):
             else:
                 self.display_hook_letters = Hooks.OFF
 
+        if key == arcade.key.BACKSLASH and self.letters_typed:
+            Tk().wm_withdraw() # to hide the main window
+            letters_for_removal = list(self.letters_typed.values())
+            n = len(letters_for_removal)
+            response = messagebox.askyesno("", f"Are you sure you want to exchange: {''.join(letters_for_removal)}")
+            if response == 1:
+                for letter in letters_for_removal:
+                    self.player.tiles.remove(letter)
+
+                self.player.tiles += self.tile_bag[self.tile_bag_index:self.tile_bag_index + n]
+                unshuffled_bag = self.tile_bag[self.tile_bag_index + n:] + letters_for_removal
+                random.shuffle(unshuffled_bag)
+                self.tile_bag = self.tile_bag[:self.tile_bag_index] + unshuffled_bag
+
+                self.setup_for_computers_turn(Exchange.YES)
+
         if key == arcade.key.ENTER:
             if self.phase == Phase.FINAL_SCORE:
                 self.phase = Phase.EXIT
@@ -759,20 +798,7 @@ class MyGame(arcade.Window):
                 f.close()
 
             if self.phase == Phase.PAUSE_FOR_ANALYSIS:
-                self.phase                   = Phase.COMPUTERS_TURN
-                self.pause_for_analysis_rank = None
-                self.player_plays            = []
-                self.just_bingoed            = False
-                self.display_hook_letters    = Hooks.OFF
-                self.hook_letters.clear()
-                self.player_scores_found.clear()
-                self.player_words_found.clear()
-                self.letters_to_highlight.clear()
-                self.grid = self.grid_backup.copy()
-                self.cursor.x = min(14, self.cursor.x)
-                self.cursor.y = max(0, self.cursor.y)
-                self.blank_letters = self.blank_letters | self.temp_blank_letters
-                self.temp_blank_letters.clear()
+                self.setup_for_computers_turn(Exchange.NO)
 
             if self.phase == Phase.PLAYERS_TURN:
                 potential_play = self.is_playable_and_score_and_word()
@@ -797,7 +823,7 @@ class MyGame(arcade.Window):
                         self.grid.set_tile((14-row, col), letter)
                     # we copy pasted the next three lines
                     tiles_needed                = 7 - len(self.player.tiles)
-                    self.player.tiles          += TILE_BAG[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+                    self.player.tiles          += self.tile_bag[self.tile_bag_index:self.tile_bag_index + tiles_needed]
                     self.tile_bag_index        += tiles_needed
                     self.phase                  = Phase.PAUSE_FOR_ANALYSIS
                     self.grid_backup            = self.grid.copy()
