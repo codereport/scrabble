@@ -521,14 +521,20 @@ class MyGame(arcade.Window):
         x = 12 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
         y = 50
         emoji = None
-        if "fish"     in self.definition: emoji = arcade.load_texture("../emojis/fish.png")
-        if "tree"     in self.definition: emoji = arcade.load_texture("../emojis/tree.png")
-        if "insect"   in self.definition: emoji = arcade.load_texture("../emojis/bug.png")
-        if "flower"   in self.definition: emoji = arcade.load_texture("../emojis/flower.png")
-        if "plant"    in self.definition: emoji = arcade.load_texture("../emojis/plant.png")
-        if "monetary" in self.definition: emoji = arcade.load_texture("../emojis/dollar.png")
-        if "bird"     in self.definition: emoji = arcade.load_texture("../emojis/bird.png")
-        if "letter"   in self.definition: emoji = arcade.load_texture("../emojis/letters.png")
+        if   "fish"     in self.definition.lower(): emoji = arcade.load_texture("../emojis/fish.png")
+        elif "tree"     in self.definition.lower(): emoji = arcade.load_texture("../emojis/tree.png")
+        elif "insect"   in self.definition.lower(): emoji = arcade.load_texture("../emojis/bug.png")
+        elif "flower"   in self.definition.lower(): emoji = arcade.load_texture("../emojis/flower.png")
+        elif "plant"    in self.definition.lower(): emoji = arcade.load_texture("../emojis/plant.png")
+        elif "monetary" in self.definition.lower(): emoji = arcade.load_texture("../emojis/dollar.png")
+        elif "bird"     in self.definition.lower(): emoji = arcade.load_texture("../emojis/bird.png")
+        elif "water"    in self.definition.lower(): emoji = arcade.load_texture("../emojis/water.png")
+        elif "gem"      in self.definition.lower(): emoji = arcade.load_texture("../emojis/gem.png")
+        elif "letter"   in self.definition.lower(): emoji = arcade.load_texture("../emojis/letters.png")
+        elif "greek"    in self.definition.lower(): emoji = arcade.load_texture("../emojis/greek.png")
+        elif "jewish"   in self.definition.lower(): emoji = arcade.load_texture("../emojis/israel.png")
+        elif "hebrew"   in self.definition.lower(): emoji = arcade.load_texture("../emojis/israel.png")
+        elif "mulsim"   in self.definition.lower(): emoji = arcade.load_texture("../emojis/muslim.png")
 
         lines = word_wrap_split(self.definition, 80)
         if emoji:
