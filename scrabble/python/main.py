@@ -11,7 +11,6 @@ import textwrap
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
-from tkinter import Tk, messagebox
 
 import arcade
 from colorama import Fore, Style, init
@@ -130,6 +129,8 @@ class Phase(Enum):
     COMPUTERS_TURN     = 3
     FINAL_SCORE        = 4
     EXIT               = 5
+    ASK_KNOWN_WORD     = 6
+    CONFIRM_EXCHANGE   = 7
 
 @dataclass(frozen=True, order=True)
 class Play:
@@ -337,6 +338,7 @@ class MyGame(arcade.Window):
         self.player_words_found      = set() # by rank
         self.player_scores_found     = set()
         self.player_current_play     = Err("no play yet")
+        self.pending_play            = None
 
         self.hook_letters         = defaultdict(set)
         self.display_hook_letters = Hooks.OFF
@@ -372,6 +374,18 @@ class MyGame(arcade.Window):
             arcade.draw_rectangle_outline(x, y, WIDTH-4, HEIGHT-4, arcade.color.DARK_PASTEL_GREEN, 5)
         arcade.draw_text(letter, x-HORIZ_TEXT_OFFSET, y-VERT_TEXT_OFFSET, arcade.color.WHITE, FONT_SIZE, bold=True, font_name=FONT)
         # if letter.isupper():
+
+    def draw_dialog(self, text):
+        # Draw a semi-transparent background
+        arcade.draw_lrtb_rectangle_filled(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, (0, 0, 0, 200))
+        # Draw the box
+        cx, cy = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2
+        width, height = 600, 200
+        arcade.draw_rectangle_filled(cx, cy, width, height, arcade.color.WHITE)
+        arcade.draw_rectangle_outline(cx, cy, width, height, arcade.color.BLACK, 2)
+        # Draw text
+        arcade.draw_text(text, cx, cy + 20, arcade.color.BLACK, 20, width=500, align="center", anchor_x="center", anchor_y="center", bold=True, font_name=FONT)
+        arcade.draw_text("Press Y for Yes, N for No", cx, cy - 40, arcade.color.DARK_GRAY, 15, width=500, align="center", anchor_x="center", anchor_y="center", font_name=FONT)
 
     def on_draw(self):
         """Render the screen"""
@@ -564,45 +578,20 @@ class MyGame(arcade.Window):
             sys.exit()
             return
 
-        # COMPUTER LOGIC
-        if self.phase == Phase.COMPUTERS_TURN:
-            sorted_words = self.generate_all_plays(self.computer.tiles)
-
-            i = -1
-            while sorted_words[i].word in self.KNOW:
-                log(f"skip {sorted_words[i].word} ({abs(i)})", LogType.INFO)
-                i -= 1
-            play = sorted_words[i]
-
-            # add computers played word to dictionary if you know it
-            if play.word not in self.KNOW:
-                Tk().wm_withdraw() # to hide the main window
-                response = messagebox.askyesno("", f"Do you know: {play.word}?")
-                if response == 1:
-                    self.KNOW.add(play.word)
-
-            self.blank_letters = self.blank_letters | play.blanks
-
-            self.computer.tiles = self.play_word(play, self.computer.tiles)
-
-            # this was copied
-            tiles_needed = 7 - len(self.computer.tiles)
-            if play.is_bingo:
-                self.letters_bingoed = self.letters_bingoed.union(self.letters_to_highlight)
-            self.computer.tiles += self.tile_bag[self.tile_bag_index:self.tile_bag_index + tiles_needed]
-            self.tile_bag_index += tiles_needed
-
-            self.computer.last_word_score = play.score
-            self.computer.score          += play.score
-            self.phase                    = Phase.PLAYERS_TURN
-
-            self.last_grid = self.grid.copy()
+        # COMPUTER LOGIC (Moved to on_update)
 
         # PLAYER WORD SOLVER
         if (self.phase == Phase.PLAYERS_TURN and not self.player_plays):
             self.player_plays          = self.generate_all_plays(self.player.tiles)
             self.filtered_player_plays = [word for word in self.player_plays if len(word.blanks) == 0 or word.score >= 50][-14:]
             log("done generating plays", LogType.OK)
+
+        if self.phase == Phase.ASK_KNOWN_WORD:
+            self.draw_dialog(f"Do you know: {self.pending_play.word}?")
+
+        if self.phase == Phase.CONFIRM_EXCHANGE:
+            letters = "".join(self.letters_typed.values())
+            self.draw_dialog(f"Are you sure you want to exchange: {letters}?")
 
     def recursive_definition(self, word, num):
         definition = self.DEFINITIONS[word.upper()]
@@ -635,6 +624,40 @@ class MyGame(arcade.Window):
 
         self.definition = self.recursive_definition(word, 1)
         return remaining_tiles
+
+    def apply_computer_play(self, play):
+        self.blank_letters = self.blank_letters | play.blanks
+
+        self.computer.tiles = self.play_word(play, self.computer.tiles)
+
+        # this was copied
+        tiles_needed = 7 - len(self.computer.tiles)
+        if play.is_bingo:
+            self.letters_bingoed = self.letters_bingoed.union(self.letters_to_highlight)
+        self.computer.tiles += self.tile_bag[self.tile_bag_index:self.tile_bag_index + tiles_needed]
+        self.tile_bag_index += tiles_needed
+
+        self.computer.last_word_score = play.score
+        self.computer.score          += play.score
+        self.phase                    = Phase.PLAYERS_TURN
+
+        self.last_grid = self.grid.copy()
+
+    def on_update(self, delta_time):
+        if self.phase == Phase.COMPUTERS_TURN:
+            sorted_words = self.generate_all_plays(self.computer.tiles)
+
+            i = -1
+            while sorted_words[i].word in self.KNOW:
+                log(f"skip {sorted_words[i].word} ({abs(i)})", LogType.INFO)
+                i -= 1
+            play = sorted_words[i]
+
+            if play.word not in self.KNOW:
+                self.pending_play = play
+                self.phase = Phase.ASK_KNOWN_WORD
+            else:
+                self.apply_computer_play(play)
 
     def on_mouse_press(self, x, y, button, modifiers):
         """Called when the user presses a mouse button"""
@@ -672,6 +695,33 @@ class MyGame(arcade.Window):
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key"""
+
+        if self.phase == Phase.ASK_KNOWN_WORD:
+            if key == arcade.key.Y:
+                self.KNOW.add(self.pending_play.word)
+                self.apply_computer_play(self.pending_play)
+                self.pending_play = None
+            elif key == arcade.key.N:
+                self.apply_computer_play(self.pending_play)
+                self.pending_play = None
+            return
+
+        if self.phase == Phase.CONFIRM_EXCHANGE:
+            if key == arcade.key.Y:
+                letters_for_removal = list(self.letters_typed.values())
+                n = len(letters_for_removal)
+                for letter in letters_for_removal:
+                    self.player.tiles.remove(letter)
+
+                self.player.tiles += self.tile_bag[self.tile_bag_index:self.tile_bag_index + n]
+                unshuffled_bag = self.tile_bag[self.tile_bag_index + n:] + letters_for_removal
+                random.shuffle(unshuffled_bag)
+                self.tile_bag = self.tile_bag[:self.tile_bag_index] + unshuffled_bag
+
+                self.setup_for_computers_turn(Exchange.YES)
+            elif key == arcade.key.N:
+                self.phase = Phase.PLAYERS_TURN
+            return
 
         if key in ARROW_KEYS:
             if not self.letters_typed:
@@ -785,20 +835,7 @@ class MyGame(arcade.Window):
                 self.display_hook_letters = Hooks.OFF
 
         if key == arcade.key.BACKSLASH and self.letters_typed:
-            Tk().wm_withdraw() # to hide the main window
-            letters_for_removal = list(self.letters_typed.values())
-            n = len(letters_for_removal)
-            response = messagebox.askyesno("", f"Are you sure you want to exchange: {''.join(letters_for_removal)}")
-            if response == 1:
-                for letter in letters_for_removal:
-                    self.player.tiles.remove(letter)
-
-                self.player.tiles += self.tile_bag[self.tile_bag_index:self.tile_bag_index + n]
-                unshuffled_bag = self.tile_bag[self.tile_bag_index + n:] + letters_for_removal
-                random.shuffle(unshuffled_bag)
-                self.tile_bag = self.tile_bag[:self.tile_bag_index] + unshuffled_bag
-
-                self.setup_for_computers_turn(Exchange.YES)
+            self.phase = Phase.CONFIRM_EXCHANGE
 
         if key == arcade.key.ENTER:
             if self.phase == Phase.FINAL_SCORE:
