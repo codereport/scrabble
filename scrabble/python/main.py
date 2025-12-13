@@ -360,6 +360,12 @@ class MyGame(arcade.Window):
 
         self.trie = nwl_2020()
 
+        # --- TIMER VARIABLES ------------
+        self.time_limit = 15 * 60  # 15 minutes in seconds
+        self.current_time = self.time_limit
+        self.timer_is_running = True
+        # --------------------------------
+
         self.letters_typed        = {}
         self.letters_to_highlight = set()
         self.letters_bingoed      = set()
@@ -367,6 +373,9 @@ class MyGame(arcade.Window):
         self.blank_letters        = set()
         self.just_bingoed         = False
         self.definition           = ""
+
+        # Call self.tick_timer every 1.0 second
+        arcade.schedule(self.tick_timer, 1.0)
 
     def draw_letter(self, letter, x, y, color, pos):
         arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
@@ -467,6 +476,30 @@ class MyGame(arcade.Window):
         arcade.draw_rectangle_filled(x, y, SCORE_BOX_WIDTH, HEIGHT, color)
         score = f"{self.computer.score} ({self.computer.last_word_score})"
         arcade.draw_text(score, x-HORIZ_TEXT_OFFSET*4, y-VERT_TEXT_OFFSET*.75, arcade.color.BLACK, 20, bold=True, font_name=FONT)
+
+        # --- TIMER DISPLAY --------------
+        minutes = self.current_time // 60
+        seconds = self.current_time % 60
+        timer_text = f"TIMER: {minutes:02d}:{seconds:02d}"
+
+        # Position the timer near the top-right corner or scoreboxes
+        column = 15
+        row    = 13
+        x = (MARGIN + WIDTH)  * column + (2 * MARGIN) + TOP_WORD_BOX_WIDTH // 2
+        y = (MARGIN + HEIGHT) * row    + MARGIN + HEIGHT // 2 + BOTTOM_MARGIN
+
+        color = arcade.color.YELLOW if self.current_time <= 60 else arcade.color.WHITE # Turn red if < 1 min
+
+        arcade.draw_text(
+            timer_text,
+            x - HORIZ_TEXT_OFFSET * 4,
+            y - VERT_TEXT_OFFSET * 0.75,
+            color,
+            24,
+            bold=True,
+            font_name=FONT
+        )
+        # ------------------------------
 
         # Draw top word boxes
         play_index = 1
@@ -602,6 +635,20 @@ class MyGame(arcade.Window):
         if num > 10:
             return definition
         return f"{definition} || {self.recursive_definition(redirect_word, num + 1)}"
+    
+    def tick_timer(self, delta_time: float):
+        """Called every second to decrement the timer."""
+        if self.phase == Phase.PLAYERS_TURN and self.timer_is_running:
+            if self.current_time > 0:
+                self.current_time -= 1
+            else:
+                # Time is up! Treat this as a pass/exchange and switch turns.
+                self.setup_for_computers_turn(Exchange.NO)
+                self.current_time = self.time_limit # Reset timer for computer's "turn" (it's quick)
+
+    def reset_timer(self):
+        """Resets the timer back to the limit."""
+        self.current_time = self.time_limit
 
     def play_word(self, play, tiles):
         # TODO fix the 14 - row
@@ -692,6 +739,8 @@ class MyGame(arcade.Window):
             self.grid = self.grid_backup.copy()
             self.blank_letters = self.blank_letters | self.temp_blank_letters
         self.temp_blank_letters.clear()
+
+        self.reset_timer()
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key"""
@@ -876,6 +925,9 @@ class MyGame(arcade.Window):
                     self.phase                  = Phase.PAUSE_FOR_ANALYSIS
                     self.grid_backup            = self.grid.copy()
                     self.cursor.dir             = None
+
+                    self.reset_timer()
+
                     if play.is_bingo:
                         self.letters_bingoed = self.letters_bingoed.union(self.letters_typed.keys())
                         self.just_bingoed    = True
