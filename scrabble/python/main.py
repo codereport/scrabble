@@ -503,7 +503,7 @@ class MyGame(arcade.Window):
 
         # Draw top word boxes
         play_index = 1
-        for row in reversed(range(ROW_COUNT - 1)):
+        for row in reversed(range(ROW_COUNT - 2)):
             render_row = 14 - row # and place
             if len(self.player_plays) == 0 or render_row + 1 > len(self.player_plays):
                 continue
@@ -643,7 +643,7 @@ class MyGame(arcade.Window):
                 self.current_time -= 1
             else:
                 # Time is up! Treat this as a pass/exchange and switch turns.
-                self.setup_for_computers_turn(Exchange.NO)
+                self.setup_for_computers_turn(Exchange.YES)
                 self.current_time = self.time_limit # Reset timer for computer's "turn" (it's quick)
 
     def reset_timer(self):
