@@ -18,6 +18,7 @@ from numpy import sign
 from result import Err, Ok
 
 from board import Board, CellCoord, Direction, Letter, Position
+from emoji_manager import emoji_manager
 from solver import CellCoord, SolverState
 from trie import nwl_2020
 
@@ -714,6 +715,7 @@ class MyGame(arcade.Window):
         self.blank_letters = set()
         self.just_bingoed = False
         self.definition = ""
+        self.current_emoji_texture = None
 
         # Timer variables
         self.timer_seconds = 900  # 15 minutes in seconds
@@ -1021,47 +1023,13 @@ class MyGame(arcade.Window):
         # Draw word definition
         x = 12 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
         y = 50
-        emoji = None
-        if "fish" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/fish.png")
-        elif "tree" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/tree.png")
-        elif "insect" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/bug.png")
-        elif "flower" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/flower.png")
-        elif "plant" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/plant.png")
-        elif "monetary" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/dollar.png")
-        elif "bird" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/bird.png")
-        elif "letter" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/letters.png")
-        elif "water" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/water.png")
-        elif "gem" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/gem.png")
-        elif "wine" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/wine.png")
-        elif "element" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/ptoe.png")
-        elif "chemical" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/chemical.png")
-        elif "science" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/chemical.png")
-        elif "greek" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/greek.png")
-        elif "jewish" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/israel.png")
-        elif "hebrew" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/israel.png")
-        elif "mulsim" in self.definition.lower():
-            emoji = arcade.load_texture("../emojis/muslim.png")
+
+        if self.current_emoji_texture:
+            arcade.draw_texture_rectangle(
+                x - 40, y + 18, 40, 40, self.current_emoji_texture, 0
+            )
 
         lines = word_wrap_split(self.definition, 80)
-        if emoji:
-            arcade.draw_texture_rectangle(x - 40, y + 18, 40, 40, emoji, 0)
         for i, line in enumerate(lines):
             arcade.draw_text(
                 line,
@@ -1154,6 +1122,24 @@ class MyGame(arcade.Window):
             return definition
         return f"{definition} || {self.recursive_definition(redirect_word, num + 1)}"
 
+    def update_current_word(self, word):
+        self.definition = self.recursive_definition(word, 1)
+
+        # Get emoji and generate texture
+        try:
+            emoji_char = emoji_manager.get_emoji_for_definition(word, self.definition)
+            if emoji_char:
+                image_path = emoji_manager.generate_emoji_image(emoji_char)
+                if image_path:
+                    self.current_emoji_texture = arcade.load_texture(image_path)
+                else:
+                    self.current_emoji_texture = None
+            else:
+                self.current_emoji_texture = None
+        except Exception as e:
+            print(f"Error loading emoji: {e}")
+            self.current_emoji_texture = None
+
     def save_known_words_and_exit(self):
         """Save known words to file and exit the game"""
         try:
@@ -1184,7 +1170,7 @@ class MyGame(arcade.Window):
             col += col_delta
             row += row_delta
 
-        self.definition = self.recursive_definition(word, 1)
+        self.update_current_word(word)
         return remaining_tiles
 
     def apply_computer_play(self, play):
@@ -1430,7 +1416,7 @@ class MyGame(arcade.Window):
                         if rank:
                             self.player_words_found.add(rank)
                             self.player_scores_found.add(play.score)
-                            self.definition = self.recursive_definition(play.word, 1)
+                            self.update_current_word(play.word)
                     except Exception:
                         log(f"failed to play: {play}", LogType.FAIL)
 
