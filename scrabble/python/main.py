@@ -984,6 +984,78 @@ class MyGame(arcade.Window):
             )
             column += 1
 
+        # Draw emoji under remaining tiles
+        if self.current_emoji_texture:
+            total_tiles = 100  # Standard Scrabble set size
+            current_tiles = len(tiles_left)
+            # Inverse relationship: fewer tiles -> bigger emoji
+            # Min size: 40, Max size: 200 (for example)
+
+            # 0 tiles left = max scale, 100 tiles left = min scale
+            # scale factor 0 to 1
+            scale = 1.0 - (current_tiles / total_tiles)
+
+            # Nonlinear scaling for dramatic effect at the end
+            scale = scale**0.5
+
+            base_size = 40
+            max_size = 300
+
+            current_size = base_size + (max_size - base_size) * scale
+
+            emoji_x = (
+                (MARGIN + WIDTH) * 15
+                + (2 * MARGIN)
+                + TOP_WORD_BOX_WIDTH
+                + (6 * MARGIN)
+                + (WIDTH * 3)  # Centered roughly under the tile area
+            )
+
+            # Determine where the lowest occupied row is
+            if current_tiles > 0:
+                last_tile_index = current_tiles - 1
+                lowest_row_index = 14 - (last_tile_index // 7)
+            else:
+                lowest_row_index = 14  # Default if empty
+
+            # Calculate y-coordinate of the bottom of that row
+            lowest_row_center_y = (
+                (MARGIN + HEIGHT) * lowest_row_index
+                + MARGIN
+                + HEIGHT // 2
+                + BOTTOM_MARGIN
+            )
+            # This is the vertical center of the lowest row.
+            # Tiles occupy HEIGHT pixels around this center.
+            # Bottom of tile = center_y - (HEIGHT / 2)
+
+            # Place emoji below the tiles by default
+            # Add extra buffer of 10px to avoid touching
+            emoji_y_default = (
+                lowest_row_center_y - (HEIGHT / 2) - (current_size / 2) - 20
+            )
+
+            # Check for overlap with definition area (bottom of screen)
+            definition_area_top = 180  # Increased from 150 to be safer
+            min_emoji_y = definition_area_top + (current_size / 2) + 10
+
+            if emoji_y_default < min_emoji_y:
+                # If we are too low, we move it to the RIGHT.
+                # Still need to position it BELOW the tiles, not at their center
+                emoji_x += WIDTH + MARGIN + 40  # Push it further right
+                emoji_y = lowest_row_center_y - (HEIGHT / 2) - (current_size / 2) - 20
+            else:
+                emoji_y = emoji_y_default
+
+            arcade.draw_texture_rectangle(
+                emoji_x,
+                emoji_y,
+                current_size,
+                current_size,
+                self.current_emoji_texture,
+                0,
+            )
+
         # Draw tile rack
         tiles_left = list(self.letters_typed.values())
         blanks_typed = len(self.temp_blank_letters)
@@ -1023,11 +1095,6 @@ class MyGame(arcade.Window):
         # Draw word definition
         x = 12 * (MARGIN + WIDTH) + MARGIN + WIDTH // 2
         y = 50
-
-        if self.current_emoji_texture:
-            arcade.draw_texture_rectangle(
-                x - 40, y + 18, 40, 40, self.current_emoji_texture, 0
-            )
 
         lines = word_wrap_split(self.definition, 80)
         for i, line in enumerate(lines):

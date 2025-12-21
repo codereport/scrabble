@@ -87,15 +87,14 @@ class EmojiManager:
         
         return None # Fallback
 
-    def generate_emoji_image(self, emoji_char: str, size: int = 64) -> str:
+    def generate_emoji_image(self, emoji_char: str, size: int = 512) -> str:
         """
         Generates a PNG for the given emoji and returns the file path.
         Returns cached path if it already exists.
+        Default size increased to 512 for better quality at large scales.
         """
         # Hex encode emoji for filename to avoid filesystem issues
-        filename = f"{ord(emoji_char[0])}.png" # Simple filename for now, might need better handling for multi-char emojis
-        # Better filename using hex of utf-8 bytes or unicode code points
-        filename = "-".join(f"{ord(c):x}" for c in emoji_char) + ".png"
+        filename = "-".join(f"{ord(c):x}" for c in emoji_char) + f"_s{size}.png"
         
         filepath = CACHE_DIR / filename
         
@@ -121,6 +120,12 @@ class EmojiManager:
                 # We need a larger canvas for this
                 font_size = 109
                 canvas_size = 128
+                
+                # If requested size is larger than bitmap source, we can't do much with bitmap fonts
+                # BUT if we have a vector font fallback (like DejaVu), we should scale that up.
+                # For NotoColorEmoji (bitmap), we might just have to live with it or upscale.
+                # Let's try to generate at requested size if possible, or max available bitmap size.
+                
                 try:
                     font = ImageFont.truetype(self.font_path, font_size)
                 except OSError:
