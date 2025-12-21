@@ -1272,10 +1272,24 @@ class MyGame(arcade.Window):
         if self.phase == Phase.COMPUTERS_TURN:
             sorted_words = self.generate_all_plays(self.computer.tiles)
 
+            if not sorted_words:
+                # No valid plays - computer must pass
+                print("Computer has no valid plays and passes their turn.")
+                self.phase = Phase.PLAYERS_TURN
+                return
+
             i = -1
-            while sorted_words[i].word in self.KNOW:
+            # Find a word that's not in KNOW, checking bounds
+            while abs(i) <= len(sorted_words) and sorted_words[i].word in self.KNOW:
                 log(f"skip {sorted_words[i].word} ({abs(i)})", LogType.INFO)
                 i -= 1
+
+            # If we've exhausted all words (all are in KNOW), pass
+            if abs(i) > len(sorted_words):
+                print("Computer knows all possible words and passes their turn.")
+                self.phase = Phase.PLAYERS_TURN
+                return
+
             play = sorted_words[i]
 
             if play.word not in self.KNOW:
