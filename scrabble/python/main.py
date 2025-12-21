@@ -1371,10 +1371,16 @@ class MyGame(arcade.Window):
                 if potential_play.is_ok():
                     play = potential_play.unwrap()
                     try:
-                        rank = self.player_plays[::-1].index(play) + 1
-                        self.player_words_found.add(rank)
-                        self.player_scores_found.add(play.score)
-                        self.definition = self.recursive_definition(play.word, 1)
+                        # Find matching play by word and score (not exact position)
+                        rank = None
+                        for i, p in enumerate(reversed(self.player_plays)):
+                            if p.word == play.word and p.score == play.score:
+                                rank = i + 1
+                                break
+                        if rank:
+                            self.player_words_found.add(rank)
+                            self.player_scores_found.add(play.score)
+                            self.definition = self.recursive_definition(play.word, 1)
                     except Exception:
                         log(f"failed to play: {play}", LogType.FAIL)
 
@@ -1504,7 +1510,12 @@ class MyGame(arcade.Window):
     def generate_all_plays(self, tiles):
         plays = SolverState(self.trie, self.grid, tiles).find_all_options()
         valid_plays = []
+        seen_word_scores = set()  # Track (word, score) combinations to avoid duplicates
+        is_first_turn = self.grid.is_first_turn()
         for pos, letters, blanks in plays:
+            # Skip vertical plays on first turn (duplicates of horizontal due to symmetry)
+            if is_first_turn and pos.dir == Direction.DOWN:
+                continue
             score = word_score(
                 self.grid,
                 self.trie,
@@ -1514,7 +1525,11 @@ class MyGame(arcade.Window):
                 blanks | self.blank_letters,
             )
             if score.is_ok():
-                valid_plays.append(score.unwrap())
+                play = score.unwrap()
+                word_score_pair = (play.word, play.score)
+                if word_score_pair not in seen_word_scores:
+                    seen_word_scores.add(word_score_pair)
+                    valid_plays.append(play)
         return sorted(valid_plays)
 
 
