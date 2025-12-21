@@ -434,6 +434,7 @@ class Phase(Enum):
     EXIT = 5
     ASK_KNOWN_WORD = 6
     CONFIRM_EXCHANGE = 7
+    CONFIRM_PASS = 8
 
 
 @dataclass(frozen=True, order=True)
@@ -1118,6 +1119,9 @@ class MyGame(arcade.Window):
             letters = "".join(self.letters_typed.values())
             self.draw_dialog(f"Are you sure you want to exchange: {letters}?")
 
+        if self.phase == Phase.CONFIRM_PASS:
+            self.draw_dialog("Are you sure you want to pass your turn?")
+
     def recursive_definition(self, word, num):
         definition = self.DEFINITIONS[word.upper()]
         if definition[0] not in ["<", "{"]:
@@ -1278,6 +1282,15 @@ class MyGame(arcade.Window):
                 self.tile_bag = self.tile_bag[: self.tile_bag_index] + unshuffled_bag
 
                 self.setup_for_computers_turn(Exchange.YES)
+            elif key == arcade.key.N:
+                self.phase = Phase.PLAYERS_TURN
+            return
+
+        if self.phase == Phase.CONFIRM_PASS:
+            if key == arcade.key.Y:
+                # Pass turn - no tiles exchanged, no points scored
+                print("Player passed their turn.")
+                self.setup_for_computers_turn(Exchange.NO)
             elif key == arcade.key.N:
                 self.phase = Phase.PLAYERS_TURN
             return
@@ -1445,8 +1458,13 @@ class MyGame(arcade.Window):
             else:
                 self.display_hook_letters = Hooks.OFF
 
-        if key == arcade.key.BACKSLASH and self.letters_typed:
-            self.phase = Phase.CONFIRM_EXCHANGE
+        if key == arcade.key.BACKSLASH:
+            if self.letters_typed:
+                # Exchange tiles
+                self.phase = Phase.CONFIRM_EXCHANGE
+            else:
+                # Pass turn
+                self.phase = Phase.CONFIRM_PASS
 
         if key == arcade.key.ENTER:
             if self.phase == Phase.FINAL_SCORE:
