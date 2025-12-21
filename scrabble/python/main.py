@@ -1098,7 +1098,7 @@ class MyGame(arcade.Window):
                 )
 
             print("GAME OVER")
-            print("Press ENTER to exit (or ESC / Ctrl+C / Ctrl+D anytime).")
+            print("Press ENTER to exit (or Ctrl+C / Ctrl+D anytime).")
 
         # COMPUTER LOGIC (Moved to on_update)
 
@@ -1245,10 +1245,8 @@ class MyGame(arcade.Window):
     def on_key_press(self, key, modifiers):
         """Called when the user presses a key"""
 
-        # Handle Ctrl+C, Ctrl+D, and ESC to exit and save
-        if (
-            (modifiers & arcade.key.MOD_CTRL) and key in [arcade.key.C, arcade.key.D]
-        ) or key == arcade.key.ESCAPE:
+        # Handle Ctrl+C and Ctrl+D to exit and save
+        if (modifiers & arcade.key.MOD_CTRL) and key in [arcade.key.C, arcade.key.D]:
             self.save_known_words_and_exit()
             return
 
