@@ -938,7 +938,8 @@ class MyGame(arcade.Window):
                 Phase.FINAL_SCORE,
             ]:
                 arcade.draw_rectangle_filled(x, y, TOP_WORD_BOX_WIDTH, HEIGHT, color)
-                display = f"{render_row}: {play.word} ({play.score})"
+                formatted_word = self.format_word_with_blanks(play)
+                display = f"{render_row}: {formatted_word} ({play.score})"
                 arcade.draw_text(
                     display,
                     x - HORIZ_TEXT_OFFSET - 130,
@@ -1121,6 +1122,27 @@ class MyGame(arcade.Window):
 
         if self.phase == Phase.CONFIRM_PASS:
             self.draw_dialog("Are you sure you want to pass your turn?")
+
+    def format_word_with_blanks(self, play: Play) -> str:
+        """Format a word with blank letters in lowercase"""
+        if not play.blanks:
+            return play.word
+
+        formatted_word = ""
+        for i, letter in enumerate(play.word):
+            # Calculate the cell coordinate for this letter position
+            if play.pos.dir == Direction.ACROSS:
+                cell_coord = (play.pos.row, play.pos.col + i)
+            else:  # Direction.DOWN
+                cell_coord = (play.pos.row + i, play.pos.col)
+
+            # If this position is a blank, lowercase it
+            if cell_coord in play.blanks:
+                formatted_word += letter.lower()
+            else:
+                formatted_word += letter
+
+        return formatted_word
 
     def recursive_definition(self, word, num):
         definition = self.DEFINITIONS[word.upper()]
