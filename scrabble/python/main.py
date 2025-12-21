@@ -872,12 +872,14 @@ class MyGame(arcade.Window):
         arcade.draw_rectangle_filled(x, y, SCORE_BOX_WIDTH, HEIGHT, color)
         arcade.draw_text(
             score,
-            x - HORIZ_TEXT_OFFSET * 4,
-            y - VERT_TEXT_OFFSET * 0.75,
+            x,
+            y,
             arcade.color.BLACK,
             20,
             bold=True,
             font_name=FONT,
+            anchor_x="center",
+            anchor_y="center",
         )
 
         # Draw computer score box
@@ -900,12 +902,14 @@ class MyGame(arcade.Window):
         score = f"{self.computer.score} ({self.computer.last_word_score})"
         arcade.draw_text(
             score,
-            x - HORIZ_TEXT_OFFSET * 4,
-            y - VERT_TEXT_OFFSET * 0.75,
+            x,
+            y,
             arcade.color.BLACK,
             20,
             bold=True,
             font_name=FONT,
+            anchor_x="center",
+            anchor_y="center",
         )
 
         # Draw top word boxes
