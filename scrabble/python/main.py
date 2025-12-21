@@ -1072,7 +1072,7 @@ class MyGame(arcade.Window):
             )
 
         ## extra points
-        if self.phase not in [Phase.FINAL_SCORE, Phase.EXIT] and (
+        if self.phase != Phase.FINAL_SCORE and (
             len(self.player.tiles) == 0 or len(self.computer.tiles) == 0
         ):
             self.phase = Phase.FINAL_SCORE
@@ -1097,11 +1097,7 @@ class MyGame(arcade.Window):
                 )
 
             print("GAME OVER")
-            print("Press ENTER to exit.")
-
-        if self.phase == Phase.EXIT:
-            sys.exit()
-            return
+            print("Press ENTER to exit (or ESC / Ctrl+C / Ctrl+D anytime).")
 
         # COMPUTER LOGIC (Moved to on_update)
 
@@ -1131,6 +1127,17 @@ class MyGame(arcade.Window):
         if num > 10:
             return definition
         return f"{definition} || {self.recursive_definition(redirect_word, num + 1)}"
+
+    def save_known_words_and_exit(self):
+        """Save known words to file and exit the game"""
+        try:
+            os.remove("know.txt")
+        except FileNotFoundError:
+            pass
+        with open("know.txt", "w") as f:
+            f.write("\n".join(sorted(list(self.KNOW))))
+        print("Known words saved. Exiting...")
+        sys.exit()
 
     def play_word(self, play, tiles):
         # TODO fix the 14 - row
@@ -1230,6 +1237,16 @@ class MyGame(arcade.Window):
             self.grid = self.grid_backup.copy()
             self.blank_letters = self.blank_letters | self.temp_blank_letters
         self.temp_blank_letters.clear()
+
+    def on_key_press(self, key, modifiers):
+        """Called when the user presses a key"""
+
+        # Handle Ctrl+C, Ctrl+D, and ESC to exit and save
+        if (
+            (modifiers & arcade.key.MOD_CTRL) and key in [arcade.key.C, arcade.key.D]
+        ) or key == arcade.key.ESCAPE:
+            self.save_known_words_and_exit()
+            return
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key"""
@@ -1433,11 +1450,7 @@ class MyGame(arcade.Window):
 
         if key == arcade.key.ENTER:
             if self.phase == Phase.FINAL_SCORE:
-                self.phase = Phase.EXIT
-                os.remove("know.txt")
-                f = open("know.txt", "x")
-                f.write("\n".join(sorted(list(self.KNOW))))
-                f.close()
+                self.save_known_words_and_exit()
 
             if self.phase == Phase.PAUSE_FOR_ANALYSIS:
                 self.setup_for_computers_turn(Exchange.NO)
