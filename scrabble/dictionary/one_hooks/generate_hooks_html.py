@@ -63,7 +63,7 @@ def find_one_hook_words(dictionary_path):
 
 def remove_plural_duplicates(results, all_words):
     """Remove words that are just plurals of other words in the results.
-    Also remove base words if their S-plural exists in the dictionary."""
+    Keep base words, remove their S-plural versions."""
     # Create a set of all words in results
     result_words = {r['word'] for r in results}
     
@@ -71,23 +71,12 @@ def remove_plural_duplicates(results, all_words):
     for r in results:
         word = r['word']
         
-        # Case 1: If word ends in 'S' and the non-S version is also in results, skip the plural
+        # If word ends in 'S' and the non-S version is also in results, skip the plural
+        # This means: keep ISM, skip ISMS
         if word.endswith('S') and len(word) > 1:
             base_word = word[:-1]
             if base_word in result_words:
                 continue  # Skip this plural
-        
-        # Case 2: If word + 'S' exists in dictionary AND is in results, skip the base word
-        # This handles cases like JOT (which has hook A→JOTA) where JOTS also exists
-        plural_word = word + 'S'
-        if plural_word in all_words and plural_word in result_words:
-            continue  # Skip the base word if its plural is also in results
-        
-        # Case 3: If word + 'S' exists in dictionary (even if not in results), 
-        # filter it out to avoid plural duplicates
-        # E.g., JOT has hook A→JOTA, but JOTS exists, so skip JOT
-        if plural_word in all_words:
-            continue
         
         filtered_results.append(r)
     
@@ -604,7 +593,7 @@ def main():
     results.sort(key=lambda r: (len(r['word']), r['word']))
     
     # Generate HTML
-    output_path = '/home/cph/scrabble/scrabble/dictionary/one_hook_words.html'
+    output_path = '/home/cph/scrabble/scrabble/dictionary/one_hooks/one_hook_words.html'
     print(f"\nGenerating HTML page...")
     generate_html(results, output_path)
     
