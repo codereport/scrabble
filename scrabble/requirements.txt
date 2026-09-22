@@ -2,3 +2,5 @@ arcade
 colorama
 result
 numpy
+sentence-transformers
+emoji
